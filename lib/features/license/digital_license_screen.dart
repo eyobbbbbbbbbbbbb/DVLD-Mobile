@@ -3,12 +3,44 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/services/user_session.dart';
+import 'services/license_service.dart';
 
-class DigitalLicenseScreen extends StatelessWidget {
-  const DigitalLicenseScreen({super.key});
+class DigitalLicenseScreen extends StatefulWidget {
+  final int licenseId;
+  const DigitalLicenseScreen({super.key, required this.licenseId});
+
+  @override
+  State<DigitalLicenseScreen> createState() => _DigitalLicenseScreenState();
+}
+
+class _DigitalLicenseScreenState extends State<DigitalLicenseScreen> {
+  bool _loading = true;
+  Map<String, dynamic>? _license;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLicense();
+  }
+
+  Future<void> _loadLicense() async {
+    final data = await LicenseService.getLicenseDetails(widget.licenseId);
+    setState(() {
+      _license = data;
+      _loading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_license == null) {
+      return const Scaffold(body: Center(child: Text('License not found')));
+    }
+
+    final bool isActive = _license!['isActive'] ?? false;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -56,15 +88,15 @@ class DigitalLicenseScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  QrImageView(
-                    data: 'DVLD_LIC_1029384756',
+                   QrImageView(
+                    data: 'DVLD_LIC_${widget.licenseId}',
                     version: QrVersions.auto,
                     size: 200.0,
                     foregroundColor: AppColors.textPrimary,
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'LIC# 1029384756',
+                    'LIC# ${widget.licenseId}',
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -115,11 +147,11 @@ class DigitalLicenseScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppColors.success,
+                          color: isActive ? AppColors.success : AppColors.error,
                           borderRadius: BorderRadius.circular(30),
                         ),
                         child: Text(
-                          'Active',
+                          isActive ? 'Active' : 'Inactive',
                           style: GoogleFonts.poppins(
                             color: AppColors.white,
                             fontSize: 11,
@@ -155,8 +187,8 @@ class DigitalLicenseScreen extends StatelessWidget {
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            Text(
-                              'DOB: 12/05/1990',
+                             Text(
+                              'DOB: ${UserSession.instance.dateOfBirth}',
                               style: GoogleFonts.poppins(
                                 color: Colors.white70,
                                 fontSize: 13,
@@ -170,12 +202,12 @@ class DigitalLicenseScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   const Divider(color: Colors.white24, height: 1),
                   const SizedBox(height: 16),
-                  Row(
+                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildDetailItem('CLASS', 'Class 3 (B)'),
-                      _buildDetailItem('ISSUED', '10/01/2024'),
-                      _buildDetailItem('EXPIRES', '10/01/2028'),
+                      _buildDetailItem('CLASS', _license!['className']),
+                      _buildDetailItem('ISSUED', _license!['issueDate'].toString().split('T').first),
+                      _buildDetailItem('EXPIRES', _license!['expirationDate'].toString().split('T').first),
                     ],
                   ),
                 ],
