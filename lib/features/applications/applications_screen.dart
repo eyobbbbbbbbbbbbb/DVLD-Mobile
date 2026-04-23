@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/widgets/app_button.dart';
+import '../../core/services/user_session.dart';
+import 'services/application_service.dart';
 import 'application_details_screen.dart';
 import 'apply_license_screen.dart';
 
@@ -16,43 +17,24 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int _selectedTab = 0;
-
-  final List<Map<String, dynamic>> _applications = [
-    {
-      'id': 'APP-2026-0041',
-      'type': 'New License — Class B',
-      'date': 'Apr 3, 2026',
-      'status': 'inProgress',
-      'icon': Icons.drive_eta_rounded,
-    },
-    {
-      'id': 'APP-2026-0028',
-      'type': 'License Renewal',
-      'date': 'Mar 18, 2026',
-      'status': 'approved',
-      'icon': Icons.autorenew_rounded,
-    },
-    {
-      'id': 'APP-2025-0119',
-      'type': 'International License',
-      'date': 'Nov 5, 2025',
-      'status': 'completed',
-      'icon': Icons.language_rounded,
-    },
-    {
-      'id': 'APP-2025-0088',
-      'type': 'Replacement (Lost)',
-      'date': 'Sep 12, 2025',
-      'status': 'rejected',
-      'icon': Icons.find_replace_rounded,
-    },
-  ];
+  bool _loading = true;
+  List<Map<String, dynamic>> _applications = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() => setState(() => _selectedTab = _tabController.index));
+    _loadApplications();
+  }
+
+  Future<void> _loadApplications() async {
+    setState(() => _loading = true);
+    final apps = await ApplicationService.getApplicationStatus(UserSession.instance.personId);
+    setState(() {
+      _applications = apps;
+      _loading = false;
+    });
   }
 
   @override
@@ -101,18 +83,20 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildList(_applications),
-          _buildList(_applications
-              .where((a) => a['status'] == 'inProgress' || a['status'] == 'approved')
-              .toList()),
-          _buildList(_applications
-              .where((a) => a['status'] == 'completed' || a['status'] == 'rejected')
-              .toList()),
-        ],
-      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildList(_applications),
+                _buildList(_applications
+                    .where((a) => a['status'] == 'New' || a['status'] == 'Approved')
+                    .toList()),
+                _buildList(_applications
+                    .where((a) => a['status'] == 'Completed' || a['status'] == 'Rejected' || a['status'] == 'Cancelled')
+                    .toList()),
+              ],
+            ),
     );
   }
 
@@ -138,7 +122,12 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
       itemBuilder: (context, i) => _AppItem(
         data: items[i],
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const ApplicationDetailsScreen()),
+          MaterialPageRoute(
+            builder: (_) => ApplicationDetailsScreen(
+              applicationId: items[i]['applicationID'],
+              ldlApplicationId: items[i]['ldlApplicationID'],
+            ),
+          ),
         ),
       ),
     );
@@ -178,7 +167,11 @@ class _AppItem extends StatelessWidget {
                 color: AppColors.accentLight,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(data['icon'], color: AppColors.primary, size: 26),
+              child: Icon(
+                data['className'].toString().contains('Motorcycle') ? Icons.motorcycle_rounded : Icons.drive_eta_rounded, 
+                color: AppColors.primary, 
+                size: 26
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -186,7 +179,7 @@ class _AppItem extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    data['type'],
+                    data['className'] ?? 'New License',
                     style: GoogleFonts.poppins(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -195,15 +188,15 @@ class _AppItem extends StatelessWidget {
                   const SizedBox(height: 4),
                   Wrap(
                     crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8, // horizontal spacing between tag/id and calendar/date
-                    runSpacing: 4, // vertical spacing if it wraps to next line
+                    spacing: 8,
+                    runSpacing: 4,
                     children: [
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.tag_rounded, size: 12, color: AppColors.textLight),
                           const SizedBox(width: 3),
-                          Text(data['id'],
+                          Text('APP-${data['applicationID']}',
                               style: GoogleFonts.poppins(
                                   fontSize: 11, color: AppColors.textLight)),
                         ],
@@ -214,7 +207,18 @@ class _AppItem extends StatelessWidget {
                           const Icon(Icons.calendar_today_rounded,
                               size: 12, color: AppColors.textLight),
                           const SizedBox(width: 3),
-                          Text(data['date'],
+                          Text(data['appliedDate'].toString().split('T').first,
+                              style: GoogleFonts.poppins(
+                                  fontSize: 11, color: AppColors.textLight)),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.fact_check_rounded,
+                              size: 12, color: AppColors.textLight),
+                          const SizedBox(width: 3),
+                          Text('${data['passedExamsCount']}/3 Tests',
                               style: GoogleFonts.poppins(
                                   fontSize: 11, color: AppColors.textLight)),
                         ],
