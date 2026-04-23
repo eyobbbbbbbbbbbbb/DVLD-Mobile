@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_input.dart';
 import '../payment/payment_screen.dart';
+import '../payment/payment_receipt_screen.dart';
+
+import '../license/services/detain_service.dart';
+import '../../core/services/user_session.dart';
+import '../license/services/license_service.dart';
 
 class ReleaseDetainedScreen extends StatefulWidget {
-  const ReleaseDetainedScreen({super.key});
+  final int? licenseId;
+  const ReleaseDetainedScreen({super.key, this.licenseId});
 
   @override
   State<ReleaseDetainedScreen> createState() => _ReleaseDetainedScreenState();
@@ -14,10 +21,68 @@ class ReleaseDetainedScreen extends StatefulWidget {
 
 class _ReleaseDetainedScreenState extends State<ReleaseDetainedScreen> {
   bool _acknowledged = false;
-  bool _loading = false;
+  bool _loading = true;
+  bool _submitting = false;
+  Map<String, dynamic>? _detainInfo;
+  Map<String, dynamic>? _licenseInfo;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    int? targetId = widget.licenseId;
+    
+    if (targetId == null) {
+      // Find the first detained license for the user
+      final licenses = await LicenseService.getPersonLicenses(UserSession.instance.personId);
+      final detained = licenses.firstWhere((l) => l['isDetained'] == true, orElse: () => {});
+      if (detained.isNotEmpty) {
+        targetId = detained['licenseID'];
+      }
+    }
+
+    if (targetId != null) {
+      final results = await Future.wait([
+        DetainService.getDetainInfo(targetId!),
+        LicenseService.getLicenseDetails(targetId),
+      ]);
+      setState(() {
+        _detainInfo = results[0];
+        _licenseInfo = results[1];
+        _loading = false;
+      });
+    } else {
+      setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (_detainInfo == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Release License')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.check_circle_outline_rounded, size: 64, color: AppColors.success),
+              const SizedBox(height: 16),
+              Text('No detained license found.', style: GoogleFonts.poppins()),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final double fine = (_detainInfo!['fineFees'] as num).toDouble();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -71,7 +136,7 @@ class _ReleaseDetainedScreenState extends State<ReleaseDetainedScreen> {
                                       color: AppColors.error)),
                               const SizedBox(height: 4),
                               Text(
-                                  'Your license has been detained due to unpaid traffic fines.',
+                                  'Your license has been detained due to administrative or traffic violations.',
                                   style: GoogleFonts.poppins(
                                       fontSize: 12, color: AppColors.error.withOpacity(0.8))),
                             ],
@@ -87,96 +152,59 @@ class _ReleaseDetainedScreenState extends State<ReleaseDetainedScreen> {
                       style: GoogleFonts.poppins(
                           fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                   const SizedBox(height: 12),
-                  _DetailCard(rows: const [
-                    {'label': 'License Number', 'value': 'JO-B-2022-87456'},
-                    {'label': 'Detained Date', 'value': 'Mar 15, 2026'},
-                    {'label': 'Detaining Authority', 'value': 'Traffic Police — Amman'},
-                    {'label': 'Detention Reason', 'value': 'Traffic Fines'},
-                    {'label': 'Case Reference', 'value': 'DET-2026-00394'},
+                  _DetailCard(rows: [
+                    {'label': 'License ID', 'value': '#${_detainInfo!['licenseID']}'},
+                    {'label': 'Class', 'value': _licenseInfo?['className'] ?? 'Driving License'},
+                    {'label': 'Detained Date', 'value': DateFormat('MMM d, yyyy').format(DateTime.parse(_detainInfo!['detainDate']))},
+                    {'label': 'Detain Place', 'value': _detainInfo!['detainPlace'] ?? 'DVLD Office'},
+                    {'label': 'Reason', 'value': _detainInfo!['detainReason'] ?? 'Not specified'},
                   ]),
 
                   const SizedBox(height: 24),
 
                   // Fines
-                  Text('Outstanding Fines',
+                  Text('Outstanding Fees',
                       style: GoogleFonts.poppins(
                           fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                   const SizedBox(height: 12),
-                  ...const [
-                    {
-                      'no': '1',
-                      'violation': 'Speeding (60 in 40 Zone)',
-                      'date': 'Feb 12, 2026',
-                      'amount': 'ETB 30'
-                    },
-                    {
-                      'no': '2',
-                      'violation': 'Red Light Violation',
-                      'date': 'Mar 1, 2026',
-                      'amount': 'ETB 50'
-                    },
-                    {
-                      'no': '3',
-                      'violation': 'Illegal Parking',
-                      'date': 'Mar 8, 2026',
-                      'amount': 'ETB 20'
-                    },
-                  ].map((f) => Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.error.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
                         ),
-                        child: Row(
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: AppColors.errorLight,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: Text(f['no']!,
-                                    style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.error)),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(f['violation']!,
-                                      style: GoogleFonts.poppins(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.textPrimary)),
-                                  Text(f['date']!,
-                                      style: GoogleFonts.poppins(
-                                          fontSize: 11, color: AppColors.textLight)),
-                                ],
-                              ),
-                            ),
-                            Text(f['amount']!,
-                                style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.error)),
+                            Text('Detention Fine', style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textSecondary)),
+                            Text('ETB ${fine.toStringAsFixed(2)}', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.error)),
                           ],
                         ),
-                      )),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Divider(height: 1),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Release App Fee', style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textSecondary)),
+                            Text('ETB 15.00', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
 
+                  const SizedBox(height: 16),
                   // Total
                   Container(
                     padding:
@@ -189,12 +217,12 @@ class _ReleaseDetainedScreenState extends State<ReleaseDetainedScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Total Fine Amount',
+                        Text('Total Amount Due',
                             style: GoogleFonts.poppins(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.error)),
-                        Text('ETB 100.00',
+                        Text('ETB ${(fine + 15).toStringAsFixed(2)}',
                             style: GoogleFonts.poppins(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
@@ -234,7 +262,7 @@ class _ReleaseDetainedScreenState extends State<ReleaseDetainedScreen> {
                           child: Padding(
                             padding: const EdgeInsets.only(top: 10),
                             child: Text(
-                              'I acknowledge that all fines must be paid to release my license. I agree to the terms and conditions of this request.',
+                              'I acknowledge that all fines and application fees must be paid to release my license. I agree to the terms and conditions.',
                               style: GoogleFonts.poppins(
                                   fontSize: 13, color: AppColors.textSecondary),
                             ),
@@ -254,21 +282,38 @@ class _ReleaseDetainedScreenState extends State<ReleaseDetainedScreen> {
             child: Column(
               children: [
                 AppButton(
-                  label: 'Pay Fines & Submit Request',
+                  label: 'Pay & Release License',
                   icon: Icons.payment_rounded,
                   variant: AppButtonVariant.danger,
-                  isLoading: _loading,
+                  isLoading: _submitting,
                   onPressed: !_acknowledged
                       ? null
                       : () async {
-                          setState(() => _loading = true);
-                          await Future.delayed(const Duration(milliseconds: 500));
+                          setState(() => _submitting = true);
+                          final result = await DetainService.releaseLicense(
+                            _detainInfo!['licenseID'],
+                            UserSession.instance.userId,
+                          );
+                          
                           if (mounted) {
-                            setState(() => _loading = false);
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                  builder: (_) => const PaymentScreen()),
-                            );
+                            setState(() => _submitting = false);
+                            if (result != null) {
+                               Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                    builder: (_) => PaymentReceiptScreen(
+                                      receiptData: {
+                                        'applicationId': 'APP-${result['releaseApplicationID']}',
+                                        'service': 'License Release',
+                                        'totalAmount': 'ETB ${(fine + 15).toStringAsFixed(2)}',
+                                        'applicant': UserSession.instance.fullName,
+                                      },
+                                    )),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Failed to release license. Please try again.')),
+                              );
+                            }
                           }
                         },
                 ),
