@@ -1,64 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/services/user_session.dart';
+import 'services/driver_service.dart';
+import 'package:intl/intl.dart';
 
-class DrivingHistoryScreen extends StatelessWidget {
+class DrivingHistoryScreen extends StatefulWidget {
   const DrivingHistoryScreen({super.key});
 
-  final List<Map<String, dynamic>> _history = const [
-    {
-      'type': 'License Issued',
-      'details': 'Class B — New License Issued',
-      'date': 'Jan 10, 2022',
-      'branch': 'Amman — 3rd Circle',
-      'category': 'license',
-    },
-    {
-      'type': 'Theory Exam Passed',
-      'details': 'Written Theory Test — Score: 88/100',
-      'date': 'Jan 7, 2022',
-      'branch': 'Exam Hall A',
-      'category': 'exam',
-    },
-    {
-      'type': 'Street Test Passed',
-      'details': 'Practical Driving Test — Score: Pass',
-      'date': 'Jan 5, 2022',
-      'branch': 'Training Ground 2',
-      'category': 'exam',
-    },
-    {
-      'type': 'Vision Test Passed',
-      'details': 'Vision & Colour Test — Clear',
-      'date': 'Dec 28, 2021',
-      'branch': 'Medical Unit A',
-      'category': 'exam',
-    },
-    {
-      'type': 'Application Submitted',
-      'details': 'New License Application — Class B',
-      'date': 'Dec 20, 2021',
-      'branch': 'Online Portal',
-      'category': 'application',
-    },
-    {
-      'type': 'License Renewed',
-      'details': 'Class B — Renewal (2017–2022)',
-      'date': 'Jan 10, 2017',
-      'branch': 'Amman — 5th Circle',
-      'category': 'license',
-    },
-    {
-      'type': 'License Issued',
-      'details': 'Class B — First License',
-      'date': 'Jan 10, 2012',
-      'branch': 'Amman — City Branch',
-      'category': 'license',
-    },
-  ];
+  @override
+  State<DrivingHistoryScreen> createState() => _DrivingHistoryScreenState();
+}
+
+class _DrivingHistoryScreenState extends State<DrivingHistoryScreen> {
+  bool _loading = true;
+  List<Map<String, dynamic>> _history = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    final data = await DriverService.getDriverHistory(UserSession.instance.personId);
+    setState(() {
+      _history = data;
+      _loading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final int licenseCount = _history.where((h) => h['category'] == 'license').length;
+    final int examCount = _history.where((h) => h['category'] == 'exam').length;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -71,14 +51,10 @@ class DrivingHistoryScreen extends StatelessWidget {
                 fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
         backgroundColor: AppColors.white,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.filter_list_rounded, color: AppColors.primary),
-            onPressed: () {},
-          ),
-        ],
       ),
-      body: Column(
+      body: _history.isEmpty 
+          ? Center(child: Text('No history records found.', style: GoogleFonts.poppins()))
+          : Column(
         children: [
           // Summary bar
           Container(
@@ -88,9 +64,9 @@ class DrivingHistoryScreen extends StatelessWidget {
               children: [
                 _SumCard(label: 'Total Records', value: '${_history.length}', color: AppColors.primary),
                 const SizedBox(width: 12),
-                _SumCard(label: 'Licenses', value: '3', color: AppColors.success),
+                _SumCard(label: 'Licenses', value: '$licenseCount', color: AppColors.success),
                 const SizedBox(width: 12),
-                _SumCard(label: 'Exams', value: '3', color: AppColors.accent),
+                _SumCard(label: 'Exams', value: '$examCount', color: AppColors.accent),
               ],
             ),
           ),
@@ -157,7 +133,7 @@ class DrivingHistoryScreen extends StatelessWidget {
                                             fontWeight: FontWeight.w700,
                                             color: AppColors.textPrimary)),
                                   ),
-                                  Text(h['date'] as String,
+                                  Text(DateFormat('MMM d, yyyy').format(DateTime.parse(h['date'])),
                                       style: GoogleFonts.poppins(
                                           fontSize: 11, color: AppColors.textLight)),
                                 ],
