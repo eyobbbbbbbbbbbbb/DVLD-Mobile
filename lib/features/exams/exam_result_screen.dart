@@ -5,7 +5,16 @@ import '../../core/widgets/app_button.dart';
 import 'exam_booking_screen.dart';
 
 class ExamResultScreen extends StatelessWidget {
-  const ExamResultScreen({super.key});
+  final int ldlApplicationId;
+  final int testTypeId;
+  final String testTitle;
+
+  const ExamResultScreen({
+    super.key,
+    required this.ldlApplicationId,
+    required this.testTypeId,
+    required this.testTitle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +71,7 @@ class ExamResultScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               passed
-                  ? 'You successfully passed the Written Theory Test.'
+                  ? 'You successfully passed the $testTitle.'
                   : 'Unfortunately you did not pass this time. You may retake the exam.',
               style: GoogleFonts.poppins(
                   fontSize: 14, color: AppColors.textSecondary, height: 1.5),
@@ -74,7 +83,7 @@ class ExamResultScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: passed ? AppColors.successGradient : LinearGradient(colors: [AppColors.error, Color(0xFFEF5350)]),
+                gradient: passed ? AppColors.successGradient : LinearGradient(colors: [AppColors.error, const Color(0xFFEF5350)]),
                 borderRadius: BorderRadius.circular(22),
               ),
               child: Column(
@@ -136,13 +145,13 @@ class ExamResultScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _ResultRow(label: 'Exam Type', value: 'Written Theory Test'),
+                  _ResultRow(label: 'Exam Type', value: testTitle),
                   const Divider(height: 1, indent: 16, endIndent: 16),
                   _ResultRow(label: 'Date', value: 'Apr 10, 2026'),
                   const Divider(height: 1, indent: 16, endIndent: 16),
                   _ResultRow(label: 'Time', value: '10:00 AM'),
                   const Divider(height: 1, indent: 16, endIndent: 16),
-                  _ResultRow(label: 'Application', value: 'APP-2026-0041'),
+                  _ResultRow(label: 'Application', value: 'LDL-$ldlApplicationId'),
                   const Divider(height: 1, indent: 16, endIndent: 16),
                   _ResultRow(label: 'Result', value: passed ? 'PASS' : 'FAIL',
                       valueColor: passed ? AppColors.success : AppColors.error),
@@ -173,13 +182,13 @@ class ExamResultScreen extends StatelessWidget {
                       style: GoogleFonts.poppins(
                           fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                   const SizedBox(height: 16),
-                  _SectionBar(label: 'Traffic Signs', score: 18, total: 20),
+                  const _SectionBar(label: 'Traffic Signs', score: 18, total: 20),
                   const SizedBox(height: 12),
-                  _SectionBar(label: 'Road Rules', score: 22, total: 30),
+                  const _SectionBar(label: 'Road Rules', score: 22, total: 30),
                   const SizedBox(height: 12),
-                  _SectionBar(label: 'First Aid', score: 14, total: 20),
+                  const _SectionBar(label: 'First Aid', score: 14, total: 20),
                   const SizedBox(height: 12),
-                  _SectionBar(label: 'Driving Safety', score: 28, total: 30),
+                  const _SectionBar(label: 'Driving Safety', score: 28, total: 30),
                 ],
               ),
             ),
@@ -190,7 +199,11 @@ class ExamResultScreen extends StatelessWidget {
                 label: 'Retake Exam',
                 icon: Icons.refresh_rounded,
                 onPressed: () => Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const ExamBookingScreen()),
+                  MaterialPageRoute(builder: (_) => ExamBookingScreen(
+                    ldlApplicationId: ldlApplicationId,
+                    testTypeId: testTypeId,
+                    testTitle: testTitle,
+                  )),
                 ),
               ),
               const SizedBox(height: 12),
