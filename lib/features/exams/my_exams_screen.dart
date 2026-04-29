@@ -46,7 +46,11 @@ class MyExamsScreen extends StatelessWidget {
               isLocked: false,
               actionLabel: 'Book Retest',
               onAction: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ExamBookingScreen()),
+                MaterialPageRoute(builder: (_) => const ExamBookingScreen(
+                  ldlApplicationId: 0,
+                  testTypeId: 1,
+                  testTitle: 'Vision Test',
+                )),
               ),
             ),
             
