@@ -3,12 +3,24 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_button.dart';
 import '../home/home_screen.dart';
+import 'package:intl/intl.dart';
 
 class PaymentReceiptScreen extends StatelessWidget {
-  const PaymentReceiptScreen({super.key});
+  final Map<String, dynamic>? receiptData;
+
+  const PaymentReceiptScreen({super.key, this.receiptData});
 
   @override
   Widget build(BuildContext context) {
+    // Fallback values if data is missing
+    final String receiptNo = receiptData?['receiptNo'] ?? 'RCP-${DateFormat('yyyy-MM').format(DateTime.now())}-${(1000 + (DateTime.now().millisecond % 9000))}';
+    final String transactionId = receiptData?['transactionId'] ?? 'TXN-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}';
+    final String dateStr = receiptData?['date'] ?? DateFormat('MMM d, yyyy — hh:mm a').format(DateTime.now());
+    final String applicant = receiptData?['applicant'] ?? 'Current Driver';
+    final String applicationId = receiptData?['applicationId'] ?? 'N/A';
+    final String service = receiptData?['service'] ?? 'License Release';
+    final String totalAmount = receiptData?['totalAmount'] ?? 'ETB 15.00';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -59,14 +71,14 @@ class PaymentReceiptScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         gradient: AppColors.primaryGradient,
-                        borderRadius: BorderRadius.only(
+                        borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(22),
                           topRight: Radius.circular(22),
                         ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.receipt_long_rounded,
+                          const Icon(Icons.receipt_long_rounded,
                               color: Colors.white, size: 28),
                           const SizedBox(width: 12),
                           Column(
@@ -102,21 +114,21 @@ class PaymentReceiptScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
-                          _ReceiptRow(label: 'Receipt No.', value: 'RCP-2026-00893'),
+                          _ReceiptRow(label: 'Receipt No.', value: receiptNo),
                           const SizedBox(height: 14),
-                          _ReceiptRow(label: 'Transaction ID', value: 'TXN-4872563'),
+                          _ReceiptRow(label: 'Transaction ID', value: transactionId),
                           const SizedBox(height: 14),
-                          _ReceiptRow(label: 'Date', value: 'Apr 4, 2026 — 11:23 AM'),
+                          _ReceiptRow(label: 'Date', value: dateStr),
                           const SizedBox(height: 14),
-                          _ReceiptRow(label: 'Applicant', value: 'Ahmad Al-Rashid'),
-                          const SizedBox(height: 14),
-                          _ReceiptRow(
-                              label: 'Application', value: 'APP-2026-0041'),
+                          _ReceiptRow(label: 'Applicant', value: applicant),
                           const SizedBox(height: 14),
                           _ReceiptRow(
-                              label: 'Service', value: 'New License — Class B'),
+                              label: 'Application ID', value: applicationId),
                           const SizedBox(height: 14),
-                          _ReceiptRow(label: 'Payment Method', value: 'Credit Card'),
+                          _ReceiptRow(
+                              label: 'Service', value: service),
+                          const SizedBox(height: 14),
+                          _ReceiptRow(label: 'Payment Method', value: 'Mobile Wallet'),
                           const SizedBox(height: 16),
                           Container(height: 1, color: AppColors.divider),
                           const SizedBox(height: 16),
@@ -126,7 +138,7 @@ class PaymentReceiptScreen extends StatelessWidget {
                               Text('Total Paid',
                                   style: GoogleFonts.poppins(
                                       fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                              Text('ETB 10.00',
+                              Text(totalAmount,
                                   style: GoogleFonts.poppins(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w700,
@@ -160,7 +172,7 @@ class PaymentReceiptScreen extends StatelessWidget {
                             }),
                           ),
                           const SizedBox(height: 8),
-                          Text('RCP-2026-00893',
+                          Text(receiptNo,
                               style: GoogleFonts.poppins(
                                   fontSize: 12,
                                   letterSpacing: 2,
