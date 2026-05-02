@@ -3,16 +3,50 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/user_session.dart';
 import '../../core/services/theme_service.dart';
-import '../license/license_details_screen.dart';
+import '../license/my_licenses_screen.dart';
 import '../license/driving_history_screen.dart';
+import '../training/training_status_screen.dart';
+import '../applications/services/application_service.dart';
+import '../license/services/license_service.dart';
 import 'edit_profile_screen.dart';
 import '../auth/login_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _loading = true;
+  int _appCount = 0;
+  int _licenseCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    final results = await Future.wait([
+      ApplicationService.getApplicationStatus(UserSession.instance.personId),
+      LicenseService.getPersonLicenses(UserSession.instance.personId),
+    ]);
+
+    setState(() {
+      _appCount = (results[0] as List).length;
+      _licenseCount = (results[1] as List).length;
+      _loading = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
@@ -85,9 +119,9 @@ class ProfileScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _ProfileStat(label: 'Applications', value: '4'),
+                      _ProfileStat(label: 'Applications', value: '$_appCount'),
                       Container(width: 1, height: 36, color: Colors.white24),
-                      _ProfileStat(label: 'Licenses', value: '2'),
+                      _ProfileStat(label: 'Licenses', value: '$_licenseCount'),
                       Container(width: 1, height: 36, color: Colors.white24),
                       _ProfileStat(label: 'Violations', value: '0'),
                     ],
@@ -141,10 +175,10 @@ class ProfileScreen extends StatelessWidget {
                     _MenuItem(
                       icon: Icons.credit_card_rounded,
                       iconColor: AppColors.primary,
-                      label: 'License Details',
+                      label: 'My Licenses',
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
-                            builder: (_) => const LicenseDetailsScreen()),
+                            builder: (_) => const MyLicensesScreen()),
                       ),
                     ),
                     _MenuItem(
@@ -154,6 +188,15 @@ class ProfileScreen extends StatelessWidget {
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
                             builder: (_) => const DrivingHistoryScreen()),
+                      ),
+                    ),
+                    _MenuItem(
+                      icon: Icons.school_rounded,
+                      iconColor: const Color(0xFFFBC02D),
+                      label: 'My Training Status',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (_) => const TrainingStatusScreen()),
                       ),
                     ),
                   ]),
