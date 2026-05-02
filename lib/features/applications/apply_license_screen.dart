@@ -4,7 +4,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/services/user_session.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_input.dart';
-import '../payment/payment_screen.dart';
+import 'required_documents_screen.dart';
 
 class ApplyLicenseScreen extends StatefulWidget {
   const ApplyLicenseScreen({super.key});
@@ -14,7 +14,7 @@ class ApplyLicenseScreen extends StatefulWidget {
 }
 
 class _ApplyLicenseScreenState extends State<ApplyLicenseScreen> {
-  String _selectedType = '';
+  String _selectedType = 'new';
   String _selectedClass = 'Class 3 - Ordinary driving license';
   String _selectedInstitute = 'Fenan Driving Institute';
   bool _loading = false;
@@ -76,7 +76,7 @@ class _ApplyLicenseScreenState extends State<ApplyLicenseScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Apply for License',
+          'New Application',
           style: GoogleFonts.poppins(
               fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
         ),
@@ -88,94 +88,15 @@ class _ApplyLicenseScreenState extends State<ApplyLicenseScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Type Selection
-            Text('Select Application Type',
+            // Selection Info
+            Text('Application Details',
                 style: GoogleFonts.poppins(
                     fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
             const SizedBox(height: 4),
-            Text('Choose the type of license application',
+            Text('Complete the information below to proceed.',
                 style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textSecondary)),
-            const SizedBox(height: 16),
-            ...List.generate(_licenseTypes.length, (i) {
-              final t = _licenseTypes[i];
-              final isSelected = _selectedType == t['id'];
-              return GestureDetector(
-                onTap: () => setState(() => _selectedType = t['id']),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isSelected ? (t['color'] as Color).withOpacity(0.06) : AppColors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isSelected ? t['color'] as Color : AppColors.divider,
-                      width: isSelected ? 2 : 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (t['color'] as Color).withOpacity(isSelected ? 0.1 : 0.04),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: (t['color'] as Color).withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Icon(t['icon'] as IconData,
-                            color: t['color'] as Color, size: 26),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(t['title'],
-                                style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary)),
-                            Text(t['subtitle'],
-                                style: GoogleFonts.poppins(
-                                    fontSize: 12, color: AppColors.textSecondary)),
-                          ],
-                        ),
-                      ),
-                      if (isSelected)
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: t['color'] as Color,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.check_rounded,
-                              color: Colors.white, size: 14),
-                        )
-                      else
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border:
-                                Border.all(color: AppColors.inputBorder, width: 2),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-
             const SizedBox(height: 24),
+
             Text('Driving Institute',
                 style: GoogleFonts.poppins(
                     fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
@@ -191,7 +112,7 @@ class _ApplyLicenseScreenState extends State<ApplyLicenseScreen> {
                 child: DropdownButton<String>(
                   value: _selectedInstitute,
                   isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                  icon: Icon(Icons.keyboard_arrow_down_rounded,
                       color: AppColors.textSecondary),
                   style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textPrimary),
                   items: _institutes
@@ -218,7 +139,7 @@ class _ApplyLicenseScreenState extends State<ApplyLicenseScreen> {
                 child: DropdownButton<String>(
                   value: _selectedClass,
                   isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                  icon: Icon(Icons.keyboard_arrow_down_rounded,
                       color: AppColors.textSecondary),
                   style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textPrimary),
                   items: _licenseClasses
@@ -281,7 +202,7 @@ class _ApplyLicenseScreenState extends State<ApplyLicenseScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline_rounded, color: AppColors.warning, size: 20),
+                  Icon(Icons.info_outline_rounded, color: AppColors.warning, size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -296,22 +217,20 @@ class _ApplyLicenseScreenState extends State<ApplyLicenseScreen> {
 
             const SizedBox(height: 28),
             AppButton(
-              label: 'Submit Application',
-              icon: Icons.send_rounded,
+              label: 'Proceed to Documents',
+              icon: Icons.arrow_forward_rounded,
               isLoading: _loading,
-              onPressed: _selectedType.isEmpty
-                  ? null
-                  : () async {
-                      setState(() => _loading = true);
-                      await Future.delayed(const Duration(seconds: 2));
-                      if (mounted) {
-                        setState(() => _loading = false);
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                              builder: (_) => const PaymentScreen()),
-                        );
-                      }
-                    },
+              onPressed: () async {
+                setState(() => _loading = true);
+                await Future.delayed(const Duration(seconds: 1));
+                if (mounted) {
+                  setState(() => _loading = false);
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => const RequiredDocumentsScreen()),
+                  );
+                }
+              },
             ),
             const SizedBox(height: 24),
           ],

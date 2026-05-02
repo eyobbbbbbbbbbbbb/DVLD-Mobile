@@ -22,7 +22,7 @@ class LicenseDetailsScreen extends StatelessWidget {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.download_rounded, color: AppColors.primary),
+            icon: Icon(Icons.download_rounded, color: AppColors.primary),
             onPressed: () {},
           ),
         ],
@@ -172,7 +172,7 @@ class LicenseDetailsScreen extends StatelessWidget {
                       value: 0.76,
                       backgroundColor: AppColors.inputBg,
                       valueColor:
-                          const AlwaysStoppedAnimation<Color>(AppColors.success),
+                          AlwaysStoppedAnimation<Color>(AppColors.success),
                       minHeight: 10,
                     ),
                   ),

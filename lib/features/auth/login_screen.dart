@@ -6,7 +6,7 @@ import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_input.dart';
 import '../home/home_screen.dart';
 import 'register_screen.dart';
-
+import 'services/auth_service.dart';
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -25,36 +25,35 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _loading = true);
       
-      // Simulate network
-      await Future.delayed(const Duration(seconds: 1));
-      
       final input = _emailController.text;
-      final mockUser = MockUsers.find(input);
-      
-      if (mockUser != null) {
-        UserSession.instance.login(
-          fullName: mockUser['fullName']!,
-          nationalId: mockUser['nationalId']!,
-          email: mockUser['email']!,
-          phone: mockUser['phone']!,
-          address: mockUser['address']!,
-          dateOfBirth: mockUser['dateOfBirth']!,
-          gender: mockUser['gender']!,
-        );
-      } else {
-        // Fallback for demo if credentials don't match
-        UserSession.instance.login(
-          fullName: MockUsers.deriveDisplayName(input),
-          nationalId: '1234567890',
-          email: input.contains('@') ? input : '$input@demo.com',
-          phone: '+962 79 000 0000',
-        );
-      }
+      final password = _passwordController.text;
 
+      // API Integration
+      final result = await AuthService.login(input, password);
+      
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+        setState(() => _loading = false);
+        if (result['success']) {
+          final userData = result['data']['user'] ?? {};
+          // Save to UserSession if available
+          UserSession.instance.login(
+            fullName: userData['fullName'] ?? input,
+            nationalId: userData['nationalId'] ?? '1234567890',
+            email: userData['email'] ?? input,
+            phone: userData['phone'] ?? '',
+          );
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        } else {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Login failed'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
@@ -70,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
               // Header
               Container(
                 width: double.infinity,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: AppColors.primaryGradient,
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(36),
@@ -84,10 +83,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        color: AppColors.white.withOpacity(0.15),
+                        color: AppColors.white.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.directions_car_rounded,
                         color: AppColors.white,
                         size: 44,
@@ -108,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       'Driving License Department',
                       style: GoogleFonts.poppins(
                         fontSize: 13,
-                        color: AppColors.white.withOpacity(0.75),
+                        color: AppColors.white.withValues(alpha: 0.75),
                         fontWeight: FontWeight.w400,
                       ),
                     ),

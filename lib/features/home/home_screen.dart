@@ -5,10 +5,12 @@ import '../../core/services/user_session.dart';
 import '../../core/widgets/app_card.dart';
 import '../applications/applications_screen.dart';
 import '../applications/apply_license_screen.dart';
-import '../exams/exam_booking_screen.dart';
+import '../exams/my_exams_screen.dart';
 import '../license/release_detained_screen.dart';
+import '../license/digital_license_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../profile/profile_screen.dart';
+import '../applications/renewal_options_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -134,7 +136,7 @@ class _HomeDashboard extends StatelessWidget {
           // Header
           SliverToBoxAdapter(
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: AppColors.primaryGradient,
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(34),
@@ -185,7 +187,7 @@ class _HomeDashboard extends StatelessWidget {
                               child: Stack(
                                 alignment: Alignment.center,
                                 children: [
-                                  const Icon(Icons.notifications_outlined,
+                                  Icon(Icons.notifications_outlined,
                                       color: AppColors.white, size: 22),
                                   Positioned(
                                     right: 8,
@@ -193,7 +195,7 @@ class _HomeDashboard extends StatelessWidget {
                                     child: Container(
                                       width: 8,
                                       height: 8,
-                                      decoration: const BoxDecoration(
+                                      decoration: BoxDecoration(
                                         color: AppColors.warning,
                                         shape: BoxShape.circle,
                                       ),
@@ -211,7 +213,7 @@ class _HomeDashboard extends StatelessWidget {
                               color: AppColors.white.withOpacity(0.15),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.person_rounded,
+                            child: Icon(Icons.person_rounded,
                                 color: AppColors.white, size: 22),
                           ),
                         ],
@@ -220,61 +222,67 @@ class _HomeDashboard extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   // License card
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: AppColors.white.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                          color: AppColors.white.withOpacity(0.2), width: 1),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const DigitalLicenseScreen()),
                     ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: AppColors.white.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: AppColors.white.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: AppColors.white.withOpacity(0.2), width: 1),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(Icons.credit_card_rounded,
+                                color: AppColors.white, size: 28),
                           ),
-                          child: const Icon(Icons.credit_card_rounded,
-                              color: AppColors.white, size: 28),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Active License',
-                                  style: GoogleFonts.poppins(
-                                    color: AppColors.white.withOpacity(0.75),
-                                    fontSize: 12,
-                                  )),
-                              Text('Class B — Expires Dec 2027',
-                                  style: GoogleFonts.poppins(
-                                    color: AppColors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  )),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.success,
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Text(
-                            'Active',
-                            style: GoogleFonts.poppins(
-                              color: AppColors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Active License',
+                                    style: GoogleFonts.poppins(
+                                      color: AppColors.white.withOpacity(0.75),
+                                      fontSize: 12,
+                                    )),
+                                Text('Class B — Expires Dec 2027',
+                                    style: GoogleFonts.poppins(
+                                      color: AppColors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    )),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.success,
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Text(
+                              'Active',
+                              style: GoogleFonts.poppins(
+                                color: AppColors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -288,9 +296,9 @@ class _HomeDashboard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Quick Actions
+                  // Services
                   Text(
-                    'Quick Actions',
+                    'Services',
                     style: GoogleFonts.poppins(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
@@ -308,7 +316,7 @@ class _HomeDashboard extends StatelessWidget {
                     children: [
                       _QuickAction(
                         icon: Icons.add_card_rounded,
-                        label: 'Apply for\nLicense',
+                        label: 'New\nApplication',
                         color: const Color(0xFF3D5AFE),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
@@ -316,10 +324,13 @@ class _HomeDashboard extends StatelessWidget {
                         ),
                       ),
                       _QuickAction(
-                        icon: Icons.payment_rounded,
-                        label: 'Make a\nPayment',
+                        icon: Icons.autorenew_rounded,
+                        label: 'Renew /\nReplace',
                         color: const Color(0xFF00C853),
-                        onTap: () {},
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const RenewalOptionsScreen()),
+                        ),
                       ),
                       _QuickAction(
                         icon: Icons.event_note_rounded,
@@ -327,7 +338,7 @@ class _HomeDashboard extends StatelessWidget {
                         color: const Color(0xFFFF6D00),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                              builder: (_) => const ExamBookingScreen()),
+                              builder: (_) => const MyExamsScreen()),
                         ),
                       ),
                       _QuickAction(

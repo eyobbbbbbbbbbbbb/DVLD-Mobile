@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/user_session.dart';
+import '../../core/services/theme_service.dart';
 import '../license/license_details_screen.dart';
 import '../license/driving_history_screen.dart';
 import 'edit_profile_screen.dart';
@@ -18,7 +19,7 @@ class ProfileScreen extends StatelessWidget {
         slivers: [
           SliverToBoxAdapter(
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: AppColors.primaryGradient,
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(34),
@@ -194,6 +195,24 @@ class ProfileScreen extends StatelessWidget {
                           style: GoogleFonts.poppins(
                               fontSize: 13, color: AppColors.textSecondary)),
                       onTap: () {},
+                    ),
+                    ValueListenableBuilder<ThemeMode>(
+                      valueListenable: ThemeService.instance.themeNotifier,
+                      builder: (context, mode, _) {
+                        return _MenuItem(
+                          icon: mode == ThemeMode.dark
+                              ? Icons.dark_mode_rounded
+                              : Icons.light_mode_rounded,
+                          iconColor: Colors.indigo,
+                          label: 'Dark Mode',
+                          trailing: Switch.adaptive(
+                            value: mode == ThemeMode.dark,
+                            onChanged: (_) => ThemeService.instance.toggleTheme(),
+                            activeColor: AppColors.accent,
+                          ),
+                          onTap: () => ThemeService.instance.toggleTheme(),
+                        );
+                      },
                     ),
                   ]),
 

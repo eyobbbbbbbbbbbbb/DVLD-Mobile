@@ -24,7 +24,7 @@ class ApplicationDetailsScreen extends StatelessWidget {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.share_outlined, color: AppColors.textSecondary),
+            icon: Icon(Icons.share_outlined, color: AppColors.textSecondary),
             onPressed: () {},
           ),
         ],
@@ -425,7 +425,7 @@ class _ExamRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.assignment_rounded, color: AppColors.primary, size: 20),
+          Icon(Icons.assignment_rounded, color: AppColors.primary, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

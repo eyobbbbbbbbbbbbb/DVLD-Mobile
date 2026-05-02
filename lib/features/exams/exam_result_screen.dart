@@ -74,7 +74,7 @@ class ExamResultScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: passed ? AppColors.successGradient : const LinearGradient(colors: [AppColors.error, Color(0xFFEF5350)]),
+                gradient: passed ? AppColors.successGradient : LinearGradient(colors: [AppColors.error, Color(0xFFEF5350)]),
                 borderRadius: BorderRadius.circular(22),
               ),
               child: Column(

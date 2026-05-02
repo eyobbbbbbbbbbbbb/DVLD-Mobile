@@ -75,7 +75,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
         ),
         actions: [
           TextButton.icon(
-            icon: const Icon(Icons.add_rounded, color: AppColors.primary),
+            icon: Icon(Icons.add_rounded, color: AppColors.primary),
             label: Text('Apply',
                 style: GoogleFonts.poppins(
                     color: AppColors.primary, fontWeight: FontWeight.w600)),
@@ -201,7 +201,7 @@ class _AppItem extends StatelessWidget {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.tag_rounded, size: 12, color: AppColors.textLight),
+                          Icon(Icons.tag_rounded, size: 12, color: AppColors.textLight),
                           const SizedBox(width: 3),
                           Text(data['id'],
                               style: GoogleFonts.poppins(

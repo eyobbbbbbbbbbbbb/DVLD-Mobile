@@ -73,7 +73,7 @@ class DrivingHistoryScreen extends StatelessWidget {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list_rounded, color: AppColors.primary),
+            icon: Icon(Icons.filter_list_rounded, color: AppColors.primary),
             onPressed: () {},
           ),
         ],

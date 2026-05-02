@@ -288,7 +288,7 @@ class _ExamBookingScreenState extends State<ExamBookingScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.event_available_rounded,
+                          Icon(Icons.event_available_rounded,
                               color: AppColors.primary, size: 24),
                           const SizedBox(width: 12),
                           Column(

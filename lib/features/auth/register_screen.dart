@@ -16,7 +16,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _loading = false;
   String _selectedGender = 'Male';
-  String _selectedCountry = 'Jordan';
   final _dobController = TextEditingController(text: '1990-01-01');
   bool _termsAccepted = false;
 
@@ -149,13 +148,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     label: _currentStep < 2 ? 'Next' : 'Register',
                     isLoading: _loading,
                     onPressed: () async {
-                      if (_currentStep < 2) {
-                        setState(() => _currentStep++);
-                      } else {
+                      if (_formKey.currentState!.validate()) {
+                        if (_currentStep < 2) {
+                          setState(() => _currentStep++);
+                        } else {
                         setState(() => _loading = true);
                         await Future.delayed(const Duration(seconds: 2));
                         if (mounted) {
-                          Navigator.of(context).pop();
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
@@ -165,6 +164,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               backgroundColor: AppColors.success,
                             ),
                           );
+                          Navigator.of(context).pop();
+                        }
                         }
                       }
                     },
@@ -220,16 +221,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _dobController,
                   decoration: InputDecoration(
                     hintText: 'YYYY-MM-DD',
-                    prefixIcon: const Icon(Icons.calendar_today_outlined, size: 20, color: AppColors.textLight),
+                    prefixIcon: Icon(Icons.calendar_today_outlined, size: 20, color: AppColors.textLight),
                     filled: true,
                     fillColor: AppColors.inputBg,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppColors.inputBorder),
+                      borderSide: BorderSide(color: AppColors.inputBorder),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppColors.inputBorder),
+                      borderSide: BorderSide(color: AppColors.inputBorder),
                     ),
                   ),
                   style: GoogleFonts.poppins(fontSize: 14),
@@ -400,11 +401,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
           decoration: BoxDecoration(
             color: AppColors.infoLight,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.info.withOpacity(0.3)),
+            border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
-              const Icon(Icons.info_outline_rounded, color: AppColors.info, size: 20),
+              Icon(Icons.info_outline_rounded, color: AppColors.info, size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(

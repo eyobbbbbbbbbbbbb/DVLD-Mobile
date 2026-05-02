@@ -139,7 +139,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                   )),
                             ),
                             if (_selectedMethod == i)
-                              const Icon(Icons.check_circle_rounded,
+                              Icon(Icons.check_circle_rounded,
                                   color: AppColors.primary, size: 20),
                           ],
                         ),
@@ -221,15 +221,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
             fillColor: AppColors.inputBg,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.inputBorder),
+              borderSide: BorderSide(color: AppColors.inputBorder),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.inputBorder),
+              borderSide: BorderSide(color: AppColors.inputBorder),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: BorderSide(color: AppColors.primary, width: 1.5),
             ),
             hintStyle: GoogleFonts.poppins(fontSize: 14, color: AppColors.textLight),
           ),

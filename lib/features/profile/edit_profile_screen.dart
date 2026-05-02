@@ -88,7 +88,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                           shape: BoxShape.circle,
                           border: Border.all(color: AppColors.divider, width: 2),
                         ),
-                        child: const Icon(Icons.person_rounded,
+                        child: Icon(Icons.person_rounded,
                             color: AppColors.primary, size: 50),
                       ),
                       GestureDetector(
@@ -339,12 +339,12 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                 children: [
                   Container(
                     padding: const EdgeInsets.all(14),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: AppColors.accentLight,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.cloud_upload_rounded,
-                        color: AppColors.primary, size: 30),
+                    child: Icon(Icons.cloud_upload_rounded,
+                          color: AppColors.primary, size: 30),
                   ),
                   const SizedBox(height: 12),
                   Text('Tap to Upload',

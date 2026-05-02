@@ -25,7 +25,7 @@ class PaymentReceiptScreen extends StatelessWidget {
                   color: AppColors.successLight,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check_circle_rounded,
+                child: Icon(Icons.check_circle_rounded,
                     color: AppColors.success, size: 54),
               ),
               const SizedBox(height: 20),
@@ -57,7 +57,7 @@ class PaymentReceiptScreen extends StatelessWidget {
                     // Header
                     Container(
                       padding: const EdgeInsets.all(20),
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         gradient: AppColors.primaryGradient,
                         borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(22),
@@ -66,7 +66,7 @@ class PaymentReceiptScreen extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.receipt_long_rounded,
+                          Icon(Icons.receipt_long_rounded,
                               color: Colors.white, size: 28),
                           const SizedBox(width: 12),
                           Column(
