@@ -4,13 +4,23 @@ import '../../core/theme/app_theme.dart';
 import '../../core/services/user_session.dart';
 import '../../core/widgets/app_card.dart';
 import '../applications/applications_screen.dart';
-import '../applications/apply_license_screen.dart';
+import '../applications/new_application_screen.dart';
+import '../applications/renewal_options_screen.dart';
+import '../applications/international_application_screen.dart';
+import '../applications/services/application_service.dart';
+import '../license/driving_history_screen.dart';
+import '../license/services/license_service.dart';
 import '../exams/my_exams_screen.dart';
+import '../training/training_status_screen.dart';
 import '../license/release_detained_screen.dart';
 import '../license/digital_license_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../profile/profile_screen.dart';
-import '../applications/renewal_options_screen.dart';
+import '../../core/api/services/message_service.dart';
+import 'package:provider/provider.dart';
+import '../../core/providers/notification_provider.dart';
+import 'package:flutter/services.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -124,11 +134,55 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-class _HomeDashboard extends StatelessWidget {
+class _HomeDashboard extends StatefulWidget {
   const _HomeDashboard();
 
   @override
+  State<_HomeDashboard> createState() => _HomeDashboardState();
+}
+
+class _HomeDashboardState extends State<_HomeDashboard> {
+  bool _loading = true;
+  Map<String, dynamic>? _activeLicense;
+  List<Map<String, dynamic>> _recentApps = [];
+  int _examCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    setState(() => _loading = true);
+    
+    final results = await Future.wait([
+      LicenseService.getPersonLicenses(UserSession.instance.personId),
+      ApplicationService.getApplicationStatus(UserSession.instance.personId),
+    ]);
+
+    final List<Map<String, dynamic>> licenses = results[0] as List<Map<String, dynamic>>;
+    final List<Map<String, dynamic>> apps = results[1] as List<Map<String, dynamic>>;
+
+    setState(() {
+      // Get most recent active license
+      _activeLicense = licenses.where((l) => l['isActive']).firstOrNull;
+      
+      // Get top 3 recent applications
+      _recentApps = apps.take(3).toList();
+      
+      // Total exams passed across applications
+      _examCount = apps.fold(0, (sum, app) => sum + (app['passedExamsCount'] as int));
+      
+      _loading = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
@@ -172,39 +226,7 @@ class _HomeDashboard extends StatelessWidget {
                       ),
                       Row(
                         children: [
-                          GestureDetector(
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                  builder: (_) => const NotificationsScreen()),
-                            ),
-                            child: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: AppColors.white.withOpacity(0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Icon(Icons.notifications_outlined,
-                                      color: AppColors.white, size: 22),
-                                  Positioned(
-                                    right: 8,
-                                    top: 8,
-                                    child: Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.warning,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                          _NotificationIcon(),
                           const SizedBox(width: 10),
                           Container(
                             width: 44,
@@ -222,10 +244,11 @@ class _HomeDashboard extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   // License card
+                  if (_activeLicense != null)
                   GestureDetector(
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                          builder: (_) => const DigitalLicenseScreen()),
+                          builder: (_) => DigitalLicenseScreen(licenseId: _activeLicense!['licenseID'])),
                     ),
                     child: Container(
                       padding: const EdgeInsets.all(18),
@@ -256,7 +279,7 @@ class _HomeDashboard extends StatelessWidget {
                                       color: AppColors.white.withOpacity(0.75),
                                       fontSize: 12,
                                     )),
-                                Text('Class B — Expires Dec 2027',
+                                Text('${_activeLicense!['className']} — Expires ${_activeLicense!['expirationDate'].toString().split('T').first}',
                                     style: GoogleFonts.poppins(
                                       color: AppColors.white,
                                       fontSize: 14,
@@ -284,7 +307,24 @@ class _HomeDashboard extends StatelessWidget {
                         ],
                       ),
                     ),
-                  ),
+                  )
+                  else
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: AppColors.white.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.white.withOpacity(0.1)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline_rounded, color: AppColors.white70),
+                          const SizedBox(width: 12),
+                          Text('No active license found.', 
+                            style: GoogleFonts.poppins(color: AppColors.white70, fontSize: 13)),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -320,7 +360,7 @@ class _HomeDashboard extends StatelessWidget {
                         color: const Color(0xFF3D5AFE),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                              builder: (_) => const ApplyLicenseScreen()),
+                              builder: (_) => const NewApplicationScreen()),
                         ),
                       ),
                       _QuickAction(
@@ -349,6 +389,24 @@ class _HomeDashboard extends StatelessWidget {
                           MaterialPageRoute(
                               builder: (_) =>
                                   const ReleaseDetainedScreen()),
+                        ),
+                      ),
+                      _QuickAction(
+                        icon: Icons.public_rounded,
+                        label: 'International\nLicense',
+                        color: const Color(0xFF8E24AA),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const InternationalApplicationScreen()),
+                        ),
+                      ),
+                      _QuickAction(
+                        icon: Icons.school_rounded,
+                        label: 'Training\nHub',
+                        color: const Color(0xFFFBC02D),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const TrainingStatusScreen()),
                         ),
                       ),
                     ],
@@ -380,24 +438,24 @@ class _HomeDashboard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _RecentAppCard(
-                    type: 'New License — Class B',
-                    date: 'Apr 3, 2026',
-                    status: 'In Progress',
-                    statusColor: AppColors.info,
-                    statusBg: AppColors.infoLight,
-                    icon: Icons.drive_eta_rounded,
-                  ),
-                  const SizedBox(height: 12),
-                  _RecentAppCard(
-                    type: 'License Renewal',
-                    date: 'Mar 18, 2026',
-                    status: 'Approved',
-                    statusColor: AppColors.success,
-                    statusBg: AppColors.successLight,
-                    icon: Icons.autorenew_rounded,
-                  ),
-                  const SizedBox(height: 30),
+                  ..._recentApps.map((app) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _RecentAppCard(
+                      type: app['className'],
+                      date: app['appliedDate'].toString().split('T').first,
+                      status: app['status'],
+                      statusColor: app['status'] == 'Completed' ? AppColors.success :
+                                   app['status'] == 'Cancelled' ? AppColors.textLight :
+                                   AppColors.info,
+                      statusBg: app['status'] == 'Completed' ? AppColors.successLight :
+                                 app['status'] == 'Cancelled' ? AppColors.divider :
+                                 AppColors.infoLight,
+                      icon: Icons.drive_eta_rounded,
+                    ),
+                  )),
+                  if (_recentApps.isEmpty)
+                    Text('No recent applications.', style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textLight)),
+                  const SizedBox(height: 18),
 
                   // Stats
                   Text(
@@ -409,21 +467,31 @@ class _HomeDashboard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
+                   Row(
                     children: [
                       Expanded(
-                          child: _StatCard(
-                              label: 'Applications',
-                              value: '4',
-                              icon: Icons.folder_rounded,
-                              color: AppColors.primary)),
+                          child: GestureDetector(
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const DrivingHistoryScreen()),
+                            ),
+                            child: _StatCard(
+                                label: 'Applications',
+                                value: _recentApps.length.toString(),
+                                icon: Icons.folder_rounded,
+                                color: AppColors.primary),
+                          )),
                       const SizedBox(width: 12),
                       Expanded(
-                          child: _StatCard(
-                              label: 'Exams Taken',
-                              value: '3',
-                              icon: Icons.school_rounded,
-                              color: AppColors.accent)),
+                          child: GestureDetector(
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const DrivingHistoryScreen()),
+                            ),
+                            child: _StatCard(
+                                label: 'Exams Passed',
+                                value: _examCount.toString(),
+                                icon: Icons.school_rounded,
+                                color: AppColors.accent),
+                          )),
                       const SizedBox(width: 12),
                       Expanded(
                           child: _StatCard(
@@ -629,6 +697,135 @@ class _StatCard extends StatelessWidget {
               textAlign: TextAlign.center),
         ],
       ),
+    );
+  }
+}
+class _NotificationIcon extends StatefulWidget {
+  const _NotificationIcon();
+
+  @override
+  State<_NotificationIcon> createState() => _NotificationIconState();
+}
+
+class _NotificationIconState extends State<_NotificationIcon> {
+  StreamSubscription? _notificationSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen for new notifications to show the popup
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = Provider.of<NotificationProvider>(context, listen: false);
+      _notificationSubscription = provider.onNewNotification.listen((_) {
+        _showNewNotificationAlert();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _notificationSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _showNewNotificationAlert() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('New Notification', 
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13)),
+                  Text('You have a new update from DVLD.', 
+                    style: GoogleFonts.poppins(fontSize: 11)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.primary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).size.height - 160,
+          right: 20,
+          left: 20,
+        ),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'VIEW',
+          textColor: AppColors.accent,
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<NotificationProvider>(
+      builder: (context, provider, child) {
+        final unreadCount = provider.unreadCount;
+        
+        return GestureDetector(
+          onTap: () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+            );
+            provider.refreshManual();
+          },
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.white.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(Icons.notifications_outlined, color: AppColors.white, size: 22),
+                if (unreadCount > 0)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: AppColors.warning,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Center(
+                        child: Text(
+                          unreadCount > 9 ? '9+' : '$unreadCount',
+                          style: GoogleFonts.poppins(
+                            color: AppColors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
