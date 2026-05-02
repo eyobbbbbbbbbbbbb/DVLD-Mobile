@@ -10,6 +10,9 @@ import '../../core/api/models/country.dart';
 import '../../core/api/services/country_service.dart';
 import '../../core/api/api_client.dart';
 import 'services/auth_service.dart';
+import '../applications/services/ocr_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -25,6 +28,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _selectedGender = 'Male';
   final _dobController = TextEditingController(text: '1990-01-01');
   bool _termsAccepted = false;
+
+  // AI Scanner State
+  final ImagePicker _picker = ImagePicker();
+  bool _scanning = false;
+  bool _scanDone = false;
 
   int _currentStep = 0;
 
@@ -98,6 +106,113 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _loadingData = false;
     });
   }
+
+  // ── AI Scanner Integration ──
+  void _showScanOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Scan Ethiopian ID', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Text('You can scan the Front or Back of your ID.', style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textSecondary)),
+              const SizedBox(height: 24),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_rounded, color: AppColors.primary),
+                title: Text('Take a Photo', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _scanIdCard(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.image_rounded, color: AppColors.primary),
+                title: Text('Upload from Gallery', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _scanIdCard(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _scanIdCard(ImageSource source) async {
+    final XFile? picked = await _picker.pickImage(
+      source: source,
+      imageQuality: 90,
+      maxWidth: 1280,
+    );
+    if (picked == null) return;
+
+    setState(() => _scanning = true);
+    final result = await OcrService.scanIdCard(File(picked.path));
+    setState(() => _scanning = false);
+
+    if (result != null && mounted) {
+      final hasData = result.values.any((v) => v != null && v.isNotEmpty);
+      if (hasData) {
+        setState(() => _scanDone = true);
+        _populateFieldsFromScan(result);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ID Scanned! Fields auto-filled successfully.'), backgroundColor: AppColors.success),
+        );
+      } else {
+        _showScanErrorSnack();
+      }
+    } else {
+      _showScanErrorSnack();
+    }
+  }
+
+  void _showScanErrorSnack() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Could not read the ID. Try better lighting or enter manually.',
+            style: GoogleFonts.poppins(fontSize: 13)),
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _populateFieldsFromScan(Map<String, String?> data) {
+    if (data['fullName'] != null && data['fullName']!.isNotEmpty) {
+      final parts = data['fullName']!.trim().split(RegExp(r'\s+'));
+      if (parts.isNotEmpty) _firstNameController.text = parts[0];
+      if (parts.length > 1) _secondNameController.text = parts[1];
+      if (parts.length > 2) {
+         if (parts.length == 3) {
+           _thirdNameController.text = '';
+           _lastNameController.text = parts[2];
+         } else {
+           _thirdNameController.text = parts[2];
+           _lastNameController.text = parts.sublist(3).join(' ');
+         }
+      }
+    }
+    if (data['dateOfBirth'] != null) _dobController.text = data['dateOfBirth']!;
+    if (data['gender'] != null) {
+      final g = data['gender']!.toLowerCase();
+      if (g == 'male') _selectedGender = 'Male';
+      if (g == 'female') _selectedGender = 'Female';
+    }
+    if (data['nationalId'] != null) _nationalIdController.text = data['nationalId']!;
+    if (data['phone'] != null) _phoneController.text = data['phone']!;
+    if (data['address'] != null) _addressController.text = data['address']!;
+    setState(() {});
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -316,6 +431,69 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _buildPersonalInfo() {
     return Column(
       children: [
+        // AI Scanner Banner
+        GestureDetector(
+          onTap: _scanning ? null : _showScanOptions,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: _scanDone
+                    ? [AppColors.success.withOpacity(0.1), AppColors.success.withOpacity(0.05)]
+                    : [AppColors.primary.withOpacity(0.1), AppColors.primary.withOpacity(0.02)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: _scanDone ? AppColors.success.withOpacity(0.3) : AppColors.primary.withOpacity(0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _scanDone ? AppColors.success : AppColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: _scanning
+                      ? const SizedBox(
+                          width: 20, height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : Icon(
+                          _scanDone ? Icons.check_rounded : Icons.document_scanner_rounded,
+                          color: Colors.white, size: 20,
+                        ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _scanning ? 'Reading your ID card...' : _scanDone ? 'ID Scanned Successfully' : 'Auto-fill with AI Scan',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: _scanDone ? AppColors.success : AppColors.primary,
+                        ),
+                      ),
+                      Text(
+                        _scanDone ? 'Tap to scan again or update fields below' : 'Scan your ID card to fill out this form instantly',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
         Row(
           children: [
             Expanded(
@@ -384,9 +562,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               onTap: () async {
                 final picked = await showDatePicker(
                   context: context,
-                  initialDate: DateTime(1990),
+                  initialDate: DateTime(2000),
                   firstDate: DateTime(1950),
-                  lastDate: DateTime.now(),
+                  lastDate: DateTime(2008, 12, 31),
                 );
                 if (picked != null) {
                   _dobController.text =
