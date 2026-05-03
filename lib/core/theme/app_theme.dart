@@ -3,30 +3,32 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/theme_service.dart';
 
 class AppColors {
-  // Base Colors (Light)
-  static const Color _primary = Color(0xFF0D1B6F);
-  static const Color _accent = Color(0xFF3D5AFE);
-  static const Color _white = Color(0xFFFFFFFF);
-  static const Color _background = Color(0xFFF4F6FB);
-  static const Color _textPrimary = Color(0xFF0D1B6F);
-  static const Color _textSecondary = Color(0xFF6B7280);
+  // Base Colors
+  static const Color primary = Color(0xFF0D1B6F);
+  static const Color accent = Color(0xFF3D5AFE);
+  static const Color whiteColor = Color(0xFFFFFFFF);
+  static const Color backgroundLight = Color(0xFFF4F6FB);
+  static const Color textPrimaryColor = Color(0xFF0D1B6F);
+  static const Color textSecondaryColor = Color(0xFF6B7280);
 
-  // Base Colors (Dark)
-  static const Color _backgroundDark = Color(0xFF0F172A);
-  static const Color _surfaceDark = Color(0xFF1E293B);
-  static const Color _textPrimaryDark = Color(0xFFF8FAFC);
-  static const Color _textSecondaryDark = Color(0xFF94A3B8);
+  // Dark Mode Base
+  static const Color backgroundDark = Color(0xFF0F172A);
+  static const Color surfaceDark = Color(0xFF1E293B);
+  static const Color textPrimaryDark = Color(0xFFF8FAFC);
+  static const Color textSecondaryDark = Color(0xFF94A3B8);
+  static const Color dividerDark = Color(0xFF334155);
+  static const Color inputBorderDark = Color(0xFF334155);
+  static const Color inputBgDark = Color(0xFF0F172A);
+  static const Color cardBgDark = Color(0xFF1E293B);
 
-  // Public Getters
-  static Color get primary => _primary;
-  static Color get accent => _accent;
-  static Color get white => ThemeService.instance.isDarkMode ? _surfaceDark : _white;
-  static Color get background => ThemeService.instance.isDarkMode ? _backgroundDark : _background;
-  static Color get surface => ThemeService.instance.isDarkMode ? _surfaceDark : _white;
-  static Color get textPrimary => ThemeService.instance.isDarkMode ? _textPrimaryDark : _textPrimary;
-  static Color get textSecondary => ThemeService.instance.isDarkMode ? _textSecondaryDark : _textSecondary;
-  static Color get cardBg => ThemeService.instance.isDarkMode ? _surfaceDark : _white;
-  static Color get inputBg => ThemeService.instance.isDarkMode ? _backgroundDark : const Color(0xFFF7F8FC);
+  // Public Dynamic Getters
+  static Color get white => ThemeService.instance.isDarkMode ? surfaceDark : whiteColor;
+  static Color get background => ThemeService.instance.isDarkMode ? backgroundDark : backgroundLight;
+  static Color get surface => ThemeService.instance.isDarkMode ? surfaceDark : whiteColor;
+  static Color get textPrimary => ThemeService.instance.isDarkMode ? textPrimaryDark : textPrimaryColor;
+  static Color get textSecondary => ThemeService.instance.isDarkMode ? textSecondaryDark : textSecondaryColor;
+  static Color get cardBg => ThemeService.instance.isDarkMode ? surfaceDark : whiteColor;
+  static Color get inputBg => ThemeService.instance.isDarkMode ? backgroundDark : const Color(0xFFF7F8FC);
   static Color get inputBorder => ThemeService.instance.isDarkMode ? const Color(0xFF334155) : const Color(0xFFDDE1F0);
   static Color get divider => ThemeService.instance.isDarkMode ? const Color(0xFF334155) : const Color(0xFFE8EAF0);
 
@@ -60,16 +62,6 @@ class AppColors {
   static const LinearGradient successGradient = LinearGradient(
     colors: [Color(0xFF00C853), Color(0xFF00E676)],
   );
-
-  // Dark Mode specific helper tokens
-  static Color get backgroundDark => _backgroundDark;
-  static Color get surfaceDark => _surfaceDark;
-  static Color get textPrimaryDark => _textPrimaryDark;
-  static Color get textSecondaryDark => _textSecondaryDark;
-  static Color get cardBgDark => _surfaceDark;
-  static Color get inputBgDark => _backgroundDark;
-  static Color get inputBorderDark => const Color(0xFF334155);
-  static Color get dividerDark => const Color(0xFF334155);
 }
 
 class AppTheme {
