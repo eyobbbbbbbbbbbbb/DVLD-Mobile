@@ -8,6 +8,7 @@ import '../../core/api/models/driving_institute.dart';
 import '../../core/api/services/institute_service.dart';
 import '../../core/api/models/country.dart';
 import '../../core/api/services/country_service.dart';
+import '../../core/api/api_client.dart';
 import 'services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -29,7 +30,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   final List<String> _steps = [
     'Personal Info',
-    'Institute',
     'Account',
     'Documents'
   ];
@@ -199,7 +199,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   index: _currentStep,
                   children: [
                     _buildPersonalInfo(),
-                    _buildInstituteSelection(),
                     _buildAccount(),
                     _buildDocuments(),
                   ],
@@ -228,7 +227,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     label: _currentStep < _steps.length - 1 ? 'Next' : 'Register',
                     isLoading: _loading,
                     onPressed: () async {
-                      // Manual validation for each step to avoid IndexedStack validation bugs
+                      // Manual validation for each step
                       bool canProceed = false;
                       if (_currentStep == 0) {
                         // Personal Info Validation
@@ -242,15 +241,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           );
                         }
                       } else if (_currentStep == 1) {
-                        // Institute Validation
-                        if (_selectedInstitute != null) {
-                          canProceed = true;
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Please select an institute')),
-                          );
-                        }
-                      } else if (_currentStep == 2) {
                         // Account Validation
                         if (_usernameController.text.isNotEmpty && 
                             _passwordController.text.length >= 8 &&
@@ -303,46 +293,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
 
     if (mounted) {
+      setState(() => _loading = false);
       if (result['success']) {
-        // Handle both camelCase and PascalCase for safety
-        final data = result['data'];
-        final int personId = data['personID'] ?? data['personId'] ?? data['PersonID'] ?? 0;
-        
-        try {
-          final appResult = await ApiClient.post('/applications/new-local', {
-            'applicantPersonID': personId,
-            'licenseClassID': 3, // Default to Ordinary Motor Vehicle
-            'drivingInstituteID': _selectedInstitute!.id,
-          });
-
-          if (mounted) {
-            setState(() => _loading = false);
-            if (appResult.statusCode == 201 || appResult.statusCode == 200) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Registration complete and Application submitted!'),
-                  backgroundColor: AppColors.success,
-                ),
-              );
-              Navigator.of(context).pop();
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Account created, but failed to submit application. Please try applying from the dashboard.'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-              Navigator.of(context).pop();
-            }
-          }
-        } catch (e) {
-          if (mounted) {
-            setState(() => _loading = false);
-            Navigator.of(context).pop();
-          }
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created successfully! Please sign in.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        Navigator.of(context).pop();
       } else {
-        setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result['message'] ?? 'Registration failed'),
