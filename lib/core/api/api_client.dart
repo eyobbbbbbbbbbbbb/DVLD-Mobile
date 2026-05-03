@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiClient {
-  // Use 10.0.2.2 for Android Emulator connecting to localhost.
-  // Use your computer's IP address if testing on a physical device.
-  static const String baseUrl = 'http://localhost:5000/api'; 
+  // Use 10.0.2.2:5172 for Android Emulator connecting to localhost.
+  // Use localhost:5172 for Windows/Web testing.
+  static const String baseUrl = 'http://localhost:5172/api'; 
   
   static String? _authToken;
 

@@ -8,7 +8,7 @@ class AuthService {
       final response = await ApiClient.post('/auth/login', {
         'username': username,
         'password': password,
-      }).timeout(const Duration(seconds: 3));
+      }).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -17,30 +17,57 @@ class AuthService {
         }
         return {'success': true, 'data': data};
       } else {
-        // Fallback to mock if API returns error
-        return _mockLoginFallback(username, password);
+        final error = jsonDecode(response.body);
+        return {'success': false, 'message': error['message'] ?? 'Login failed'};
       }
     } catch (e) {
-      // Fallback to mock on connection error
-      return _mockLoginFallback(username, password);
+      return {'success': false, 'message': 'Connection error: ${e.toString()}'};
     }
   }
 
-  static Map<String, dynamic> _mockLoginFallback(String username, String password) {
-    final mockUser = MockUsers.find(username);
-    if (mockUser != null) {
-      return {
-        'success': true,
-        'data': {
-          'token': 'mock_token_${username}',
-          'user': mockUser,
-        }
-      };
+  static Future<Map<String, dynamic>> register({
+    required String firstName,
+    required String secondName,
+    required String thirdName,
+    required String lastName,
+    required String nationalNo,
+    required String username,
+    required String email,
+    required String password,
+    required String phone,
+    required String address,
+    required DateTime dateOfBirth,
+    required int gender,
+    required int nationalityCountryId,
+  }) async {
+    try {
+      final response = await ApiClient.post('/auth/register', {
+        'firstName': firstName,
+        'secondName': secondName,
+        'thirdName': thirdName,
+        'lastName': lastName,
+        'nationalNo': nationalNo,
+        'username': username,
+        'email': email,
+        'password': password,
+        'phone': phone,
+        'address': address,
+        'dateOfBirth': dateOfBirth.toIso8601String(),
+        'gender': gender,
+        'nationalityCountryID': nationalityCountryId,
+        'imagePath': "", // Placeholder for now
+      });
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        return {'success': true, 'data': data};
+      } else {
+        final error = jsonDecode(response.body);
+        return {'success': false, 'message': error['message'] ?? 'Registration failed'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
     }
-    return {
-      'success': false, 
-      'message': 'Invalid credentials or API unreachable. Try using "ahmad" for mock login.'
-    };
   }
 
   static Future<void> logout() async {
