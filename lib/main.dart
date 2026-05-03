@@ -20,15 +20,15 @@ class DVLDApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: ThemeService.instance.themeNotifier,
-      builder: (_, mode, __) {
+    return ValueListenableBuilder(
+      valueListenable: ThemeService.instance.isDarkModeNotifier,
+      builder: (_, isDark, __) {
         return MaterialApp(
           title: 'DVLD — Driving License Department',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-          themeMode: mode,
+          themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
           home: const LoginScreen(),
         );
       },
