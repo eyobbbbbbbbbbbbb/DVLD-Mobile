@@ -196,17 +196,17 @@ class ProfileScreen extends StatelessWidget {
                               fontSize: 13, color: AppColors.textSecondary)),
                       onTap: () {},
                     ),
-                    ValueListenableBuilder<ThemeMode>(
-                      valueListenable: ThemeService.instance.themeNotifier,
-                      builder: (context, mode, _) {
+                    ValueListenableBuilder(
+                      valueListenable: ThemeService.instance.isDarkModeNotifier,
+                      builder: (context, isDark, _) {
                         return _MenuItem(
-                          icon: mode == ThemeMode.dark
+                          icon: isDark
                               ? Icons.dark_mode_rounded
                               : Icons.light_mode_rounded,
                           iconColor: Colors.indigo,
                           label: 'Dark Mode',
                           trailing: Switch.adaptive(
-                            value: mode == ThemeMode.dark,
+                            value: isDark,
                             onChanged: (_) => ThemeService.instance.toggleTheme(),
                             activeColor: AppColors.accent,
                           ),

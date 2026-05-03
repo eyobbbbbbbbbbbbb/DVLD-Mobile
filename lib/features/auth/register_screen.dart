@@ -401,7 +401,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           decoration: BoxDecoration(
             color: AppColors.infoLight,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+            border: Border.all(color: AppColors.info.withOpacity(0.3)),
           ),
           child: Row(
             children: [

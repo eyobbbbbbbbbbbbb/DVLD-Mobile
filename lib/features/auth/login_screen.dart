@@ -83,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        color: AppColors.white.withValues(alpha: 0.15),
+                        color: AppColors.white.withOpacity(0.15),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -107,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       'Driving License Department',
                       style: GoogleFonts.poppins(
                         fontSize: 13,
-                        color: AppColors.white.withValues(alpha: 0.75),
+                        color: AppColors.white.withOpacity(0.75),
                         fontWeight: FontWeight.w400,
                       ),
                     ),

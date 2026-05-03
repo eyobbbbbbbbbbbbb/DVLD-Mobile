@@ -36,7 +36,7 @@ class AppButton extends StatelessWidget {
 
     switch (variant) {
       case AppButtonVariant.primary:
-        bgColor = isDisabled ? AppColors.primary.withValues(alpha: 0.5) : AppColors.primary;
+        bgColor = isDisabled ? AppColors.primary.withOpacity(0.5) : AppColors.primary;
         textColor = AppColors.white;
         borderColor = Colors.transparent;
         break;
@@ -51,7 +51,7 @@ class AppButton extends StatelessWidget {
         borderColor = Colors.transparent;
         break;
       case AppButtonVariant.danger:
-        bgColor = isDisabled ? AppColors.error.withValues(alpha: 0.5) : AppColors.error;
+        bgColor = isDisabled ? AppColors.error.withOpacity(0.5) : AppColors.error;
         textColor = AppColors.white;
         borderColor = Colors.transparent;
         break;

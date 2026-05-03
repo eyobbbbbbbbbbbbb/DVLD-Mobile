@@ -4,11 +4,13 @@ class ThemeService {
   ThemeService._();
   static final ThemeService instance = ThemeService._();
 
-  final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
+  final ValueNotifier<bool> isDarkModeNotifier = ValueNotifier(false);
 
-  bool get isDarkMode => themeNotifier.value == ThemeMode.dark;
+  bool get isDarkMode => isDarkModeNotifier.value;
 
   void toggleTheme() {
-    themeNotifier.value = isDarkMode ? ThemeMode.light : ThemeMode.dark;
+    isDarkModeNotifier.value = !isDarkModeNotifier.value;
   }
+
+  ThemeMode get themeMode => isDarkMode ? ThemeMode.dark : ThemeMode.light;
 }
