@@ -6,6 +6,8 @@ import '../../core/widgets/app_input.dart';
 
 import '../../core/api/models/driving_institute.dart';
 import '../../core/api/services/institute_service.dart';
+import '../../core/api/models/country.dart';
+import '../../core/api/services/country_service.dart';
 import 'services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -45,14 +47,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  // Institute Selection State
+  // Institute & Country State
   List<String> _cities = [];
   List<String> _regions = [];
   List<DrivingInstitute> _institutes = [];
+  List<Country> _countriesList = [];
 
   String? _selectedCity;
   String? _selectedRegion;
   DrivingInstitute? _selectedInstitute;
+  Country? _selectedCountry;
 
   bool _loadingData = false;
 
@@ -64,14 +68,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _loadInitialData() async {
     setState(() => _loadingData = true);
-    final filters = await InstituteService.getFilters();
-    final institutes = await InstituteService.getAllInstitutes();
-    setState(() {
-      _cities = filters['cities']!;
-      _regions = filters['regions']!;
-      _institutes = institutes;
-      _loadingData = false;
-    });
+    try {
+      final filters = await InstituteService.getFilters();
+      final institutes = await InstituteService.getAllInstitutes();
+      final countries = await CountryService.getAllCountries();
+      
+      setState(() {
+        _cities = filters['cities']!;
+        _regions = filters['regions']!;
+        _institutes = institutes;
+        _countriesList = countries;
+        // Pre-select Jordan (ID 1) if found, or just pick the first
+        _selectedCountry = _countriesList.firstWhere((c) => c.id == 1, orElse: () => _countriesList.first);
+        _loadingData = false;
+      });
+    } catch (e) {
+      setState(() => _loadingData = false);
+    }
   }
 
   Future<void> _updateInstitutes() async {
@@ -215,14 +228,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     label: _currentStep < _steps.length - 1 ? 'Next' : 'Register',
                     isLoading: _loading,
                     onPressed: () async {
-                      if (_formKey.currentState!.validate()) {
-                        if (_currentStep == 1 && _selectedInstitute == null) {
+                      // Manual validation for each step to avoid IndexedStack validation bugs
+                      bool canProceed = false;
+                      if (_currentStep == 0) {
+                        // Personal Info Validation
+                        if (_firstNameController.text.isNotEmpty && 
+                            _lastNameController.text.isNotEmpty && 
+                            _nationalIdController.text.isNotEmpty) {
+                          canProceed = true;
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please fill all required personal info')),
+                          );
+                        }
+                      } else if (_currentStep == 1) {
+                        // Institute Validation
+                        if (_selectedInstitute != null) {
+                          canProceed = true;
+                        } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Please select an institute')),
                           );
-                          return;
                         }
+                      } else if (_currentStep == 2) {
+                        // Account Validation
+                        if (_usernameController.text.isNotEmpty && 
+                            _passwordController.text.length >= 8 &&
+                            _passwordController.text == _confirmPasswordController.text) {
+                          canProceed = true;
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please check your account details')),
+                          );
+                        }
+                      } else {
+                        canProceed = true;
+                      }
 
+                      if (canProceed) {
                         if (_currentStep < _steps.length - 1) {
                           setState(() => _currentStep++);
                         } else {
@@ -256,14 +299,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       address: _addressController.text,
       dateOfBirth: DateTime.parse(_dobController.text),
       gender: _selectedGender == 'Male' ? 0 : 1,
-      nationalityCountryId: 1, // Default to Jordan for now, or add a country picker
+      nationalityCountryId: _selectedCountry?.id ?? 1,
     );
 
     if (mounted) {
       if (result['success']) {
-        // Step 2: Create the Local Driving License Application
-        // We need the PersonID from the registration result to link the application
-        final int personId = result['data']['personId'];
+        // Handle both camelCase and PascalCase for safety
+        final data = result['data'];
+        final int personId = data['personID'] ?? data['personId'] ?? data['PersonID'] ?? 0;
         
         try {
           final appResult = await ApiClient.post('/applications/new-local', {
@@ -472,6 +515,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
           keyboardType: TextInputType.phone,
           controller: _phoneController,
           validator: (v) => v!.isEmpty ? 'Phone is required' : null,
+        ),
+        const SizedBox(height: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Nationality',
+                style: GoogleFonts.poppins(
+                    fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: AppColors.inputBg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.inputBorder),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<Country>(
+                  value: _selectedCountry,
+                  isExpanded: true,
+                  items: _countriesList.map((c) {
+                    return DropdownMenuItem(
+                      value: c,
+                      child: Text(c.name, style: GoogleFonts.poppins(fontSize: 14)),
+                    );
+                  }).toList(),
+                  onChanged: (val) => setState(() => _selectedCountry = val),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         AppInput(
