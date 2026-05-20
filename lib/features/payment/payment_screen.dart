@@ -3,6 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_button.dart';
 import 'payment_receipt_screen.dart';
+import 'payment_service.dart';
+
+const int _kDefaultApplicationID = 0; // Replace with real session ApplicationID
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({super.key});
@@ -187,12 +190,26 @@ class _PaymentScreenState extends State<PaymentScreen> {
               isLoading: _loading,
               onPressed: () async {
                 setState(() => _loading = true);
-                await Future.delayed(const Duration(seconds: 2));
+                final method = _methods[_selectedMethod]['label'] as String;
+                final result = await PaymentService.confirmPayment(
+                  applicationID: _kDefaultApplicationID,
+                  paymentMethod: method,
+                );
                 if (mounted) {
                   setState(() => _loading = false);
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
-                        builder: (_) => const PaymentReceiptScreen()),
+                      builder: (_) => PaymentReceiptScreen(
+                        receiptData: result != null ? {
+                          'receiptNo': result['receiptNumber'],
+                          'transactionId': result['receiptNumber'],
+                          'applicant': 'Driver',
+                          'service': 'License Application',
+                          'totalAmount': 'ETB ${result['paidFees']}',
+                          'date': DateTime.now().toIso8601String(),
+                        } : null,
+                      ),
+                    ),
                   );
                 }
               },

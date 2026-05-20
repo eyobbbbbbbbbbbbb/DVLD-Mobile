@@ -3,44 +3,17 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/services/user_session.dart';
-import 'services/license_service.dart';
 
-class DigitalLicenseScreen extends StatefulWidget {
-  final int licenseId;
-  const DigitalLicenseScreen({super.key, required this.licenseId});
-
-  @override
-  State<DigitalLicenseScreen> createState() => _DigitalLicenseScreenState();
-}
-
-class _DigitalLicenseScreenState extends State<DigitalLicenseScreen> {
-  bool _loading = true;
-  Map<String, dynamic>? _license;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadLicense();
-  }
-
-  Future<void> _loadLicense() async {
-    final data = await LicenseService.getLicenseDetails(widget.licenseId);
-    setState(() {
-      _license = data;
-      _loading = false;
-    });
-  }
+class DigitalInternationalLicenseScreen extends StatelessWidget {
+  final Map<String, dynamic> license;
+  const DigitalInternationalLicenseScreen({super.key, required this.license});
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-    if (_license == null) {
-      return const Scaffold(body: Center(child: Text('License not found')));
-    }
+    final bool isActive = license['isActive'] ?? false;
+    final int intLicenseId = license['internationalLicenseID'];
+    final int localLicenseId = license['issuedUsingLocalLicenseID'];
 
-    final bool isActive = _license!['isActive'] ?? false;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -49,7 +22,7 @@ class _DigitalLicenseScreenState extends State<DigitalLicenseScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Digital License',
+          'International Permit',
           style: GoogleFonts.poppins(
               fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
         ),
@@ -63,7 +36,7 @@ class _DigitalLicenseScreenState extends State<DigitalLicenseScreen> {
           children: [
             // Instruction
             Text(
-              'Show this QR code to traffic officers for quick verification.',
+              'This is your international driving permit valid globally with your local license.',
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontSize: 14,
@@ -80,7 +53,7 @@ class _DigitalLicenseScreenState extends State<DigitalLicenseScreen> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.08),
+                    color: Colors.purple.withOpacity(0.08),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -89,19 +62,19 @@ class _DigitalLicenseScreenState extends State<DigitalLicenseScreen> {
               child: Column(
                 children: [
                    QrImageView(
-                    data: 'DVLD_LIC_${widget.licenseId}',
+                    data: 'DVLD_INT_LIC_$intLicenseId',
                     version: QrVersions.auto,
                     size: 200.0,
-                    foregroundColor: AppColors.textPrimary,
+                    foregroundColor: const Color(0xFF8E24AA),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'LIC# ${widget.licenseId}',
+                    'INTL# $intLicenseId',
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 2,
-                      color: AppColors.primary,
+                      color: const Color(0xFF8E24AA),
                     ),
                   ),
                 ],
@@ -110,20 +83,20 @@ class _DigitalLicenseScreenState extends State<DigitalLicenseScreen> {
 
             const SizedBox(height: 40),
 
-            // License Details Card
+            // License Details Card (International Style)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF2C3E50), Color(0xFF3498DB)],
+                  colors: [Color(0xFF6A1B9A), Color(0xFF8E24AA)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF3498DB).withOpacity(0.3),
+                    color: const Color(0xFF8E24AA).withOpacity(0.3),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
@@ -136,7 +109,7 @@ class _DigitalLicenseScreenState extends State<DigitalLicenseScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'DRIVING LICENSE',
+                        'INTERNATIONAL PERMIT',
                         style: GoogleFonts.poppins(
                           color: Colors.white70,
                           fontSize: 12,
@@ -172,7 +145,7 @@ class _DigitalLicenseScreenState extends State<DigitalLicenseScreen> {
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2),
                         ),
-                        child: const Icon(Icons.person_rounded, color: Colors.white, size: 30),
+                        child: const Icon(Icons.public_rounded, color: Colors.white, size: 30),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -205,9 +178,9 @@ class _DigitalLicenseScreenState extends State<DigitalLicenseScreen> {
                    Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildDetailItem('CLASS', _license!['className']),
-                      _buildDetailItem('ISSUED', _license!['issueDate'].toString().split('T').first),
-                      _buildDetailItem('EXPIRES', _license!['expirationDate'].toString().split('T').first),
+                      _buildDetailItem('LOCAL LIC', '#$localLicenseId'),
+                      _buildDetailItem('ISSUED', license['issueDate'].toString().split('T').first),
+                      _buildDetailItem('EXPIRES', license['expirationDate'].toString().split('T').first),
                     ],
                   ),
                 ],

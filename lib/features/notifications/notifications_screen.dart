@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/api/models/message.dart';
+import '../../core/api/services/message_service.dart';
+import '../../core/services/user_session.dart';
 import '../../core/theme/app_theme.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -10,200 +13,228 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  final List<Map<String, dynamic>> _notifications = [
-    {
-      'title': 'Vision Test Passed',
-      'body': 'Congratulations! You passed your vision test. Written theory exam is scheduled for Apr 10.',
-      'time': '2 hours ago',
-      'icon': Icons.check_circle_rounded,
-      'color': AppColors.success,
-      'bg': AppColors.successLight,
-      'isRead': false,
-    },
-    {
-      'title': 'Exam Reminder',
-      'body': 'Your Written Theory Exam is tomorrow at 10:00 AM. Please arrive 15 minutes early.',
-      'time': '5 hours ago',
-      'icon': Icons.notifications_active_rounded,
-      'color': AppColors.warning,
-      'bg': AppColors.warningLight,
-      'isRead': false,
-    },
-    {
-      'title': 'Fee Payment Confirmed',
-      'body': 'Your payment of ETB 10.00 for application APP-2026-0041 has been received.',
-      'time': 'Yesterday',
-      'icon': Icons.payment_rounded,
-      'color': AppColors.primary,
-      'bg': AppColors.accentLight,
-      'isRead': true,
-    },
-    {
-      'title': 'Application Submitted',
-      'body': 'Your application for a New License (Class B) has been submitted and is under review.',
-      'time': '3 days ago',
-      'icon': Icons.assignment_turned_in_rounded,
-      'color': AppColors.info,
-      'bg': AppColors.infoLight,
-      'isRead': true,
-    },
-    {
-      'title': 'Document Verified',
-      'body': 'Your national ID and medical certificate have been verified successfully.',
-      'time': '3 days ago',
-      'icon': Icons.verified_rounded,
-      'color': AppColors.success,
-      'bg': AppColors.successLight,
-      'isRead': true,
-    },
-    {
-      'title': 'License Renewal Approved',
-      'body': 'Your license renewal application has been approved. Visit any branch to collect.',
-      'time': '3 weeks ago',
-      'icon': Icons.autorenew_rounded,
-      'color': AppColors.success,
-      'bg': AppColors.successLight,
-      'isRead': true,
-    },
-  ];
+  bool _loading = true;
+  List<Message> _messages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMessages();
+  }
+
+  Future<void> _loadMessages() async {
+    final messages = await MessageService.getMessages(UserSession.instance.personId);
+    if (mounted) {
+      setState(() {
+        _messages = messages;
+        _loading = false;
+      });
+    }
+  }
+
+  IconData _getIcon(String type) {
+    switch (type.toLowerCase()) {
+      case 'test':
+        return Icons.event_available_rounded;
+      case 'status':
+        return Icons.info_outline_rounded;
+      case 'chat':
+        return Icons.chat_bubble_outline_rounded;
+      default:
+        return Icons.notifications_none_rounded;
+    }
+  }
+
+  Color _getColor(String type) {
+    switch (type.toLowerCase()) {
+      case 'test':
+        return AppColors.accent;
+      case 'status':
+        return AppColors.primary;
+      case 'chat':
+        return Colors.green;
+      default:
+        return AppColors.textLight;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final unread = _notifications.where((n) => !n['isRead']).length;
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () => Navigator.of(context).pop(),
+        title: Text(
+          'Notifications',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 18),
         ),
-        title: Text('Notifications',
-            style: GoogleFonts.poppins(
-                fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-        backgroundColor: AppColors.white,
-        elevation: 0,
+        centerTitle: true,
         actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                for (var n in _notifications) {
-                  n['isRead'] = true;
-                }
-              });
-            },
-            child: Text('Mark all read',
-                style: GoogleFonts.poppins(
-                    fontSize: 12, color: AppColors.accent, fontWeight: FontWeight.w500)),
+          IconButton(
+            onPressed: _loadMessages,
+            icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          if (unread > 0)
-            Container(
-              width: double.infinity,
-              color: AppColors.accentLight,
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-              child: Text(
-                '$unread unread notification${unread > 1 ? 's' : ''}',
-                style: GoogleFonts.poppins(
-                    fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w500),
-              ),
-            ),
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(20),
-              itemCount: _notifications.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, i) {
-                final n = _notifications[i];
-                return GestureDetector(
-                  onTap: () => setState(() => n['isRead'] = true),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _messages.isEmpty
+              ? _buildEmptyState()
+              : RefreshIndicator(
+                  onRefresh: _loadMessages,
+                  child: ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: n['isRead'] ? AppColors.white : AppColors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: n['isRead']
-                            ? AppColors.divider
-                            : (n['color'] as Color).withOpacity(0.3),
-                        width: n['isRead'] ? 1 : 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: n['bg'] as Color,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(n['icon'] as IconData,
-                              color: n['color'] as Color, size: 22),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(n['title'] as String,
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 13,
-                                          fontWeight: n['isRead']
-                                              ? FontWeight.w500
-                                              : FontWeight.w700,
-                                          color: AppColors.textPrimary,
-                                        )),
-                                  ),
-                                  if (!n['isRead'])
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.accent,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(height: 5),
-                              Text(n['body'] as String,
-                                  style: GoogleFonts.poppins(
-                                      fontSize: 12,
-                                      color: AppColors.textSecondary,
-                                      height: 1.5)),
-                              const SizedBox(height: 8),
-                              Text(n['time'] as String,
-                                  style: GoogleFonts.poppins(
-                                      fontSize: 11, color: AppColors.textLight)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) {
+                      final msg = _messages[index];
+                      return _buildMessageCard(msg);
+                    },
                   ),
-                );
-              },
+                ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.notifications_off_outlined, size: 80, color: AppColors.textLight.withOpacity(0.5)),
+          const SizedBox(height: 16),
+          Text(
+            'No notifications yet',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
             ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'We\'ll notify you here when there\'s an update.',
+            style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textLight),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildMessageCard(Message msg) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: msg.isRead ? null : Border.all(color: AppColors.primary.withOpacity(0.1), width: 1),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          if (!msg.isRead) {
+            MessageService.markAsRead(msg.id);
+            setState(() {
+              // Local update for immediate feedback
+              final idx = _messages.indexWhere((m) => m.id == msg.id);
+              if (idx != -1) {
+                _messages[idx] = Message(
+                  id: msg.id,
+                  personId: msg.personId,
+                  senderId: msg.senderId,
+                  title: msg.title,
+                  content: msg.content,
+                  isRead: true,
+                  createdAt: msg.createdAt,
+                  messageType: msg.messageType,
+                );
+              }
+            });
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _getColor(msg.messageType).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _getIcon(msg.messageType),
+                  color: _getColor(msg.messageType),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            msg.title,
+                            style: GoogleFonts.poppins(
+                              fontWeight: msg.isRead ? FontWeight.w500 : FontWeight.w700,
+                              fontSize: 14,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        if (!msg.isRead)
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      msg.content,
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _formatDate(msg.createdAt),
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: AppColors.textLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${date.day}/${date.month}/${date.year}';
   }
 }
