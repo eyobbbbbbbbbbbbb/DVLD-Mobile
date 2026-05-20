@@ -1,51 +1,72 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/api/api_client.dart';
+import '../../core/services/user_session.dart';
 import '../exams/exam_result_screen.dart';
 
 class ExamBookingScreen extends StatefulWidget {
-  const ExamBookingScreen({super.key});
+  final int ldlApplicationId;
+  final int testTypeId;
+  final String testTitle;
+
+  const ExamBookingScreen({
+    super.key,
+    required this.ldlApplicationId,
+    required this.testTypeId,
+    required this.testTitle,
+  });
 
   @override
   State<ExamBookingScreen> createState() => _ExamBookingScreenState();
 }
 
 class _ExamBookingScreenState extends State<ExamBookingScreen> {
-  String _selectedExam = 'vision';
+  late String _selectedExam;
   String _selectedDate = '';
   String _selectedTime = '';
   bool _loading = false;
 
-  final List<Map<String, dynamic>> _examTypes = [
-    {
-      'id': 'vision',
-      'title': 'Vision Test',
-      'desc': 'Eye sight and color recognition exam',
-      'duration': '15 min',
-      'fee': 'ETB 3',
-      'icon': Icons.remove_red_eye_outlined,
-      'color': const Color(0xFF3D5AFE),
-    },
-    {
-      'id': 'written',
-      'title': 'Written Theory Test',
-      'desc': 'Traffic laws and road signs exam',
-      'duration': '45 min',
-      'fee': 'ETB 5',
-      'icon': Icons.menu_book_rounded,
-      'color': const Color(0xFF8E24AA),
-    },
-    {
-      'id': 'street',
-      'title': 'Street Driving Test',
-      'desc': 'Practical on-road driving exam',
-      'duration': '30 min',
-      'fee': 'ETB 10',
-      'icon': Icons.drive_eta_rounded,
-      'color': const Color(0xFFFF6D00),
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _selectedExam = widget.testTypeId.toString();
+  }
+
+  List<Map<String, dynamic>> get _filteredExamTypes {
+    final all = [
+      {
+        'id': '1',
+        'title': 'Vision Test',
+        'desc': 'Eye sight and color recognition exam',
+        'duration': '15 min',
+        'fee': 'ETB 3',
+        'icon': Icons.remove_red_eye_outlined,
+        'color': const Color(0xFF3D5AFE),
+      },
+      {
+        'id': '2',
+        'title': 'Written Theory Test',
+        'desc': 'Traffic laws and road signs exam',
+        'duration': '45 min',
+        'fee': 'ETB 5',
+        'icon': Icons.menu_book_rounded,
+        'color': const Color(0xFF8E24AA),
+      },
+      {
+        'id': '3',
+        'title': 'Street Driving Test',
+        'desc': 'Practical on-road driving exam',
+        'duration': '30 min',
+        'fee': 'ETB 10',
+        'icon': Icons.drive_eta_rounded,
+        'color': const Color(0xFFFF6D00),
+      },
+    ];
+    return all.where((e) => e['id'] == widget.testTypeId.toString()).toList();
+  }
 
   final List<String> _availableDates = [
     'Mon, Apr 8',
@@ -89,16 +110,14 @@ class _ExamBookingScreenState extends State<ExamBookingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Select Exam Type',
+                  Text('Confirm Exam Selection',
                       style: GoogleFonts.poppins(
                           fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                   const SizedBox(height: 12),
-                  ...List.generate(_examTypes.length, (i) {
-                    final e = _examTypes[i];
+                  ...List.generate(_filteredExamTypes.length, (i) {
+                    final e = _filteredExamTypes[i];
                     final isSelected = _selectedExam == e['id'];
-                    return GestureDetector(
-                      onTap: () =>
-                          setState(() => _selectedExam = e['id'] as String),
+                    return Container(
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         margin: const EdgeInsets.only(bottom: 12),
@@ -327,11 +346,52 @@ class _ExamBookingScreenState extends State<ExamBookingScreen> {
                       ? null
                       : () async {
                           setState(() => _loading = true);
-                          await Future.delayed(const Duration(seconds: 2));
-                          if (mounted) {
-                            setState(() => _loading = false);
-                            Navigator.of(context).push(MaterialPageRoute(
-                                builder: (_) => const ExamResultScreen()));
+                          
+                          // Format: YYYY-MM-DD + Time
+                          final now = DateTime.now();
+                          final dateStr = _selectedDate.contains('Apr 8') ? '2026-04-08' :
+                                         _selectedDate.contains('Apr 9') ? '2026-04-09' :
+                                         _selectedDate.contains('Apr 10') ? '2026-04-10' :
+                                         _selectedDate.contains('Apr 11') ? '2026-04-11' :
+                                         '2026-04-13';
+                          
+                          final timeStr = _selectedTime.contains('8:00') ? '08:00' :
+                                         _selectedTime.contains('9:00') ? '09:00' :
+                                         _selectedTime.contains('10:00') ? '10:00' :
+                                         _selectedTime.contains('1:00') ? '13:00' :
+                                         '15:00';
+
+                          final appointmentDate = DateTime.parse('$dateStr $timeStr:00');
+
+                          try {
+                            final response = await ApiClient.post('/applications/schedule-test', {
+                              'localDrivingLicenseApplicationID': widget.ldlApplicationId,
+                              'testTypeID': widget.testTypeId,
+                              'appointmentDate': appointmentDate.toIso8601String(),
+                              'createdByUserID': UserSession.instance.userId,
+                            });
+
+                            if (mounted) {
+                              setState(() => _loading = false);
+                              if (response.statusCode == 200) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Test Scheduled Successfully!'), backgroundColor: AppColors.success),
+                                );
+                                Navigator.of(context).pop(); // Back to details
+                              } else {
+                                final error = jsonDecode(response.body);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(error['message'] ?? 'Failed to schedule test.'), backgroundColor: AppColors.error),
+                                );
+                              }
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              setState(() => _loading = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+                              );
+                            }
                           }
                         },
             ),

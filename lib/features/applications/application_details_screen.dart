@@ -2,14 +2,68 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/services/user_session.dart';
+import 'services/application_service.dart';
+import '../license/services/license_service.dart';
 import '../payment/payment_screen.dart';
 import '../exams/exam_booking_screen.dart';
+import '../license/digital_license_screen.dart';
 
-class ApplicationDetailsScreen extends StatelessWidget {
-  const ApplicationDetailsScreen({super.key});
+class ApplicationDetailsScreen extends StatefulWidget {
+  final int applicationId;
+  final int ldlApplicationId;
+
+  const ApplicationDetailsScreen({
+    super.key,
+    required this.applicationId,
+    required this.ldlApplicationId,
+  });
+
+  @override
+  State<ApplicationDetailsScreen> createState() => _ApplicationDetailsScreenState();
+}
+
+class _ApplicationDetailsScreenState extends State<ApplicationDetailsScreen> {
+  bool _loading = true;
+  Map<String, dynamic>? _details;
+  List<Map<String, dynamic>> _testHistory = [];
+  Map<String, dynamic>? _nextTest;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _loading = true);
+    
+    // Fetch all needed data in parallel
+    final results = await Future.wait([
+      ApplicationService.getApplicationStatus(UserSession.instance.personId),
+      ApplicationService.getTestHistory(widget.ldlApplicationId),
+      ApplicationService.getNextTest(widget.ldlApplicationId),
+    ]);
+
+    final List<Map<String, dynamic>> apps = results[0] as List<Map<String, dynamic>>;
+    final details = apps.firstWhere((a) => a['applicationID'] == widget.applicationId);
+
+    setState(() {
+      _details = details;
+      _testHistory = results[1] as List<Map<String, dynamic>>;
+      _nextTest = results[2] as Map<String, dynamic>?;
+      _loading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final String status = _details?['status'] ?? 'New';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -22,12 +76,6 @@ class ApplicationDetailsScreen extends StatelessWidget {
                 fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
         backgroundColor: AppColors.white,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.share_outlined, color: AppColors.textSecondary),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -59,13 +107,13 @@ class ApplicationDetailsScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('New License — Class B',
+                            Text(_details?['className'] ?? 'New License',
                                 style: GoogleFonts.poppins(
                                     color: Colors.white,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700)),
                             const SizedBox(height: 4),
-                            Text('APP-2026-0041',
+                            Text('APP-${widget.applicationId}',
                                 style: GoogleFonts.poppins(
                                     color: Colors.white70, fontSize: 12)),
                           ],
@@ -75,10 +123,10 @@ class ApplicationDetailsScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: AppColors.info,
+                          color: _statusColor(status),
                           borderRadius: BorderRadius.circular(30),
                         ),
-                        child: Text('In Progress',
+                        child: Text(status,
                             style: GoogleFonts.poppins(
                                 color: Colors.white,
                                 fontSize: 11,
@@ -89,9 +137,9 @@ class ApplicationDetailsScreen extends StatelessWidget {
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      _HeaderStat(label: 'Submitted', value: 'Apr 3, 2026'),
-                      _HeaderStat(label: 'Fee Paid', value: 'ETB 10'),
-                      _HeaderStat(label: 'Est. Completion', value: 'Apr 17'),
+                      _HeaderStat(label: 'Submitted', value: _details?['appliedDate'].toString().split('T').first ?? '--'),
+                      _HeaderStat(label: 'Tests Passed', value: '${_details?['passedExamsCount']}/3'),
+                      _HeaderStat(label: 'Status', value: status),
                     ],
                   ),
                 ],
@@ -108,78 +156,159 @@ class ApplicationDetailsScreen extends StatelessWidget {
                       style: GoogleFonts.poppins(
                           fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                   const SizedBox(height: 16),
-                  _Timeline(),
+                   _Timeline(
+                    passedCount: _details?['passedExamsCount'] ?? 0,
+                    status: status,
+                    appliedDate: _details?['appliedDate'].toString().split('T').first ?? '--',
+                  ),
 
                   const SizedBox(height: 28),
                   Text('Application Info',
                       style: GoogleFonts.poppins(
                           fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                   const SizedBox(height: 12),
-                  _InfoCard(rows: const [
-                    {'label': 'Applicant', 'value': 'Ahmad Al-Rashid'},
-                    {'label': 'National ID', 'value': '9-8765-4321'},
-                    {'label': 'License Type', 'value': 'New'},
-                    {'label': 'License Class', 'value': 'Class B – Passenger Car'},
-                    {'label': 'Medical Cert.', 'value': 'MC-2026-1104'},
-                    {'label': 'Branch', 'value': 'Amman – 3rd Circle'},
+                  _InfoCard(rows: [
+                    {'label': 'Applicant', 'value': UserSession.instance.fullName},
+                    {'label': 'National ID', 'value': UserSession.instance.nationalId},
+                    {'label': 'License Type', 'value': 'New Local License'},
+                    {'label': 'License Class', 'value': _details?['className'] ?? '--'},
+                    {'label': 'Application ID', 'value': 'APP-${widget.applicationId}'},
+                    {'label': 'LDL App ID', 'value': 'LDL-${widget.ldlApplicationId}'},
                   ]),
 
                   const SizedBox(height: 28),
-                  Text('Exam Schedule',
-                      style: GoogleFonts.poppins(
-                          fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                  const SizedBox(height: 12),
-                  _ExamRow(
-                    examType: 'Vision Test',
-                    date: 'Apr 6, 2026',
-                    time: '9:00 AM',
-                    status: 'Passed',
-                    isPass: true,
-                  ),
-                  const SizedBox(height: 10),
-                  _ExamRow(
-                    examType: 'Written Theory Test',
-                    date: 'Apr 10, 2026',
-                    time: '10:00 AM',
-                    status: 'Scheduled',
-                    isPass: null,
-                  ),
-                  const SizedBox(height: 10),
-                  _ExamRow(
-                    examType: 'Street Driving Test',
-                    date: 'TBD',
-                    time: '--',
-                    status: 'Pending',
-                    isPass: null,
-                  ),
+                  ..._testHistory.map((test) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _ExamRow(
+                      examType: test['testType'],
+                      date: test['date'].toString().split('T').first,
+                      time: test['date'].toString().split('T').last.substring(0, 5),
+                      status: test['result'],
+                      isPass: test['result'] == 'Pass',
+                    ),
+                  )),
+                  if (_testHistory.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Text('No exam attempts yet.', style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textLight)),
+                    ),
 
                   const SizedBox(height: 28),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AppButton(
-                          label: 'Book Exam',
-                          variant: AppButtonVariant.outline,
-                          icon: Icons.event_note_rounded,
-                          onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                                builder: (_) => const ExamBookingScreen()),
+                  if (_nextTest != null && _nextTest!['nextTestTypeID'] != 0) ...[
+                    Text('Next Action',
+                        style: GoogleFonts.poppins(
+                            fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: AppColors.accentLight,
+                            child: Icon(Icons.notification_important_rounded, color: AppColors.primary, size: 20),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _nextTest!['isScheduled'] ? 'Waiting for Test' : 'Needs Scheduling',
+                                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
+                                ),
+                                Text(
+                                  _nextTest!['isScheduled'] 
+                                    ? 'You have an active appointment for ${_nextTest!['nextTestTitle']}.'
+                                    : 'You are eligible to book your ${_nextTest!['nextTestTitle']}.',
+                                  style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  if (_nextTest != null && _nextTest!['nextTestTypeID'] != 0 && !_nextTest!['isScheduled'])
+                    AppButton(
+                      label: 'Book ${_nextTest!['nextTestTitle']}',
+                      icon: Icons.event_note_rounded,
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ExamBookingScreen(
+                            ldlApplicationId: widget.ldlApplicationId,
+                            testTypeId: _nextTest!['nextTestTypeID'],
+                            testTitle: _nextTest!['nextTestTitle'],
                           ),
                         ),
+                      ).then((_) => _loadData()), // Reload when coming back
+                    ),
+                  
+                  if (status == 'Approved' && (_details?['passedExamsCount'] ?? 0) == 3)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: AppButton(
+                        label: 'Issue Driving License',
+                        icon: Icons.card_membership_rounded,
+                        isLoading: _loading,
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: Text('Issue License', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                              content: Text('Are you sure you want to issue the license for this application?', style: GoogleFonts.poppins()),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel', style: GoogleFonts.poppins(color: AppColors.textLight))),
+                                TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Issue', style: GoogleFonts.poppins(color: AppColors.primary, fontWeight: FontWeight.w600))),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            setState(() => _loading = true);
+                            final result = await LicenseService.issueLicense(
+                              ldlApplicationId: widget.ldlApplicationId,
+                              notes: 'Issued via Mobile App',
+                              userId: UserSession.instance.userId,
+                            );
+                            
+                            if (mounted) {
+                              setState(() => _loading = false);
+                              if (result['success']) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('License Issued Successfully!'), backgroundColor: AppColors.success),
+                                );
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(builder: (_) => DigitalLicenseScreen(licenseId: result['data']['licenseID'])),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(result['message']), backgroundColor: AppColors.error),
+                                );
+                              }
+                            }
+                          }
+                        },
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: AppButton(
-                          label: 'Pay Fees',
-                          icon: Icons.payment_rounded,
-                          onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                                builder: (_) => const PaymentScreen()),
-                          ),
-                        ),
+                    ),
+
+                  if (status == 'New' && _testHistory.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: AppButton(
+                        label: 'Cancel Application',
+                        variant: AppButtonVariant.outline,
+                        icon: Icons.close_rounded,
+                        onPressed: () {}, // Implementation later
                       ),
-                    ],
-                  ),
+                    ),
                   const SizedBox(height: 30),
                 ],
               ),
@@ -188,6 +317,20 @@ class ApplicationDetailsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'Approved':
+      case 'Completed':
+        return AppColors.success;
+      case 'Rejected':
+        return AppColors.error;
+      case 'Cancelled':
+        return AppColors.textLight;
+      default:
+        return AppColors.info;
+    }
   }
 }
 
@@ -214,16 +357,25 @@ class _HeaderStat extends StatelessWidget {
 }
 
 class _Timeline extends StatelessWidget {
+  final int passedCount;
+  final String status;
+  final String appliedDate;
+
+  const _Timeline({
+    required this.passedCount,
+    required this.status,
+    required this.appliedDate,
+  });
+
   @override
   Widget build(BuildContext context) {
     final steps = [
-      {'label': 'Application Submitted', 'date': 'Apr 3, 2026', 'done': true},
-      {'label': 'Documents Verified', 'date': 'Apr 4, 2026', 'done': true},
-      {'label': 'Fee Paid', 'date': 'Apr 4, 2026', 'done': true},
-      {'label': 'Vision Test', 'date': 'Apr 6, 2026 — Passed', 'done': true},
-      {'label': 'Theory Test', 'date': 'Apr 10, 2026 — Scheduled', 'done': false, 'active': true},
-      {'label': 'Street Driving Test', 'date': 'TBD', 'done': false},
-      {'label': 'License Issued', 'date': 'TBD', 'done': false},
+      {'label': 'Application Submitted', 'date': appliedDate, 'done': true},
+      {'label': 'Payment & Verification', 'date': 'Completed', 'done': true},
+      {'label': 'Vision Test', 'date': passedCount >= 1 ? 'Passed' : 'Pending', 'done': passedCount >= 1, 'active': passedCount == 0 && status != 'Completed'},
+      {'label': 'Theory Test', 'date': passedCount >= 2 ? 'Passed' : 'Pending', 'done': passedCount >= 2, 'active': passedCount == 1},
+      {'label': 'Street Driving Test', 'date': passedCount >= 3 ? 'Passed' : 'Pending', 'done': passedCount >= 3, 'active': passedCount == 2},
+      {'label': 'License Issued', 'date': status == 'Completed' ? 'Issued' : 'TBD', 'done': status == 'Completed', 'active': passedCount == 3 && status != 'Completed'},
     ];
 
     return Container(
