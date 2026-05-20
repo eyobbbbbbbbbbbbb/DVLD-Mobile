@@ -12,6 +12,8 @@ class UserSession {
   String address = '';
   String dateOfBirth = '';
   String gender = '';
+  int personId = 0;
+  int userId = 0;
   int applicationsCount = 4;
   int licensesCount = 2;
   int violationsCount = 0;
@@ -21,6 +23,8 @@ class UserSession {
     required String fullName,
     required String nationalId,
     required String email,
+    required int personId,
+    required int userId,
     String phone = '',
     String address = '',
     String dateOfBirth = '',
@@ -29,6 +33,8 @@ class UserSession {
     this.fullName = fullName;
     this.nationalId = nationalId;
     this.email = email;
+    this.personId = personId;
+    this.userId = userId;
     this.phone = phone;
     this.address = address;
     this.dateOfBirth = dateOfBirth;

@@ -34,12 +34,20 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         setState(() => _loading = false);
         if (result['success']) {
-          final userData = result['data']['user'] ?? {};
-          // Save to UserSession if available
+          final data = result['data'] ?? {};
+          final userData = data['user'] ?? {};
+          
+          // Defensive extraction for ID casing (PersonID, personID, personId)
+          final int pId = data['personID'] ?? data['PersonID'] ?? data['personId'] ?? 0;
+          final int uId = data['userID'] ?? data['UserID'] ?? data['userId'] ?? 0;
+          
+          // Save to UserSession with real IDs from API
           UserSession.instance.login(
-            fullName: userData['fullName'] ?? input,
+            fullName: data['fullName'] ?? userData['fullName'] ?? input,
             nationalId: userData['nationalId'] ?? '1234567890',
             email: userData['email'] ?? input,
+            personId: pId,
+            userId: uId,
             phone: userData['phone'] ?? '',
           );
           Navigator.of(context).pushReplacement(

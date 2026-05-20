@@ -31,6 +31,7 @@ class AppColors {
   static Color get inputBg => ThemeService.instance.isDarkMode ? backgroundDark : const Color(0xFFF7F8FC);
   static Color get inputBorder => ThemeService.instance.isDarkMode ? const Color(0xFF334155) : const Color(0xFFDDE1F0);
   static Color get divider => ThemeService.instance.isDarkMode ? const Color(0xFF334155) : const Color(0xFFE8EAF0);
+  static Color get white70 => Colors.white.withOpacity(0.7);
 
   // Status (shared)
   static const Color success = Color(0xFF00C853);
